@@ -1,0 +1,557 @@
+{% extends 'base.html.twig' %}
+{% block title %}S'inscrire — Crowdin{% endblock %}
+
+{% block stylesheets %}
+<style>
+    main { padding-top: 0; }
+    html, body { overflow: hidden; height: 100%; }
+    footer { display: none; }
+
+    .auth-page {
+        height: 100vh;
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        grid-template-rows: 1fr auto;
+        position: relative; z-index: 1;
+        overflow: hidden;
+    }
+
+    @media (max-width: 760px) {
+        .auth-page { grid-template-columns: 1fr; }
+        .auth-left  { display: none; }
+        .auth-right { padding: 2.5rem 1.5rem; }
+    }
+
+    /* ── GAUCHE ── */
+    .auth-left {
+        display: flex; flex-direction: column;
+        padding: 2.5rem 1.75rem;
+        background: var(--bg);
+        box-shadow: 6px 0 18px var(--sh-dark);
+        z-index: 2;
+    }
+
+    .left-logo {
+        display: flex; align-items: center; gap: 0.65rem; margin-bottom: 2.5rem;
+    }
+    .left-logo-mark {
+        width: 38px; height: 38px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1rem; font-weight: 900; color: var(--accent-text);
+        box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light);
+    }
+    .left-logo-name { font-size: 1.05rem; font-weight: 800; color: var(--text); }
+
+    /* Steps */
+    .steps-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 0; }
+
+    .step-item {
+        display: flex; align-items: center; gap: 0.85rem;
+        padding: 0.9rem 1rem; border-radius: 14px;
+        transition: all 0.3s;
+        opacity: 0.4;
+    }
+    .step-item.active { opacity: 1; box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light); }
+    .step-item.done   { opacity: 0.75; }
+
+    .step-circle {
+        width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.82rem; font-weight: 800; color: var(--text-muted);
+        box-shadow: inset 2px 2px 5px var(--sh-dark), inset -2px -2px 5px var(--sh-light);
+        transition: all 0.3s;
+    }
+    .step-item.active .step-circle {
+        color: var(--accent-text);
+        box-shadow: 4px 4px 8px var(--sh-dark), -4px -4px 8px var(--sh-light);
+    }
+    .step-item.done .step-circle { color: #2f9e6e; }
+
+    .step-text {}
+    .step-sub  { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); }
+    .step-name { font-size: 0.88rem; font-weight: 700; color: var(--text-dim); margin-top: 0.05rem; }
+    .step-item.active .step-name { color: var(--text); }
+
+    .step-connector { width: 1.5px; height: 22px; background: var(--sh-dark); margin: 0 0 0 1.98rem; opacity: 0.6; }
+    .step-connector.done { background: var(--role-a, #7c6ae8); opacity: 0.4; }
+
+    .left-note {
+        margin-top: 2rem; padding: 1rem;
+        border-radius: 14px; font-size: 0.78rem; color: var(--text-muted); line-height: 1.55;
+        box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+    }
+    .left-note strong { color: var(--text-dim); }
+
+    /* ── FOOTER AUTH ── */
+    .auth-footer {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 0.7rem 1rem;
+        font-size: 0.68rem;
+        color: var(--text-muted);
+        border-top: 1px solid var(--sh-dark);
+        letter-spacing: 0.3px;
+    }
+    .auth-footer strong { color: var(--accent-text); font-weight: 700; }
+
+    /* ── DROITE ── */
+    .auth-right {
+        display: flex; align-items: flex-start; justify-content: center;
+        padding: 5rem 2.5rem 2.5rem; overflow-y: auto;
+    }
+
+    .form-card {
+        width: 100%; max-width: 420px; margin: auto 0;
+        animation: cardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    @keyframes cardIn {
+        from { opacity: 0; transform: translateY(16px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Progress bar */
+    .prog-wrap { margin-bottom: 1.75rem; }
+    .prog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.55rem; }
+    .prog-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); }
+    .prog-count { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); }
+    .prog-track {
+        height: 5px; border-radius: 99px; overflow: hidden;
+        box-shadow: inset 2px 2px 4px var(--sh-dark), inset -2px -2px 4px var(--sh-light);
+    }
+    .prog-fill {
+        height: 100%; border-radius: 99px;
+        background: linear-gradient(90deg, var(--accent), #14b8a6);
+        transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .form-card h2 { font-size: 1.5rem; font-weight: 900; color: var(--text); letter-spacing: -0.7px; margin-bottom: 0.2rem; }
+    .form-sub { font-size: 0.84rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+    .form-sub a { color: var(--accent-text); font-weight: 700; text-decoration: none; }
+
+    /* Steps */
+    .step { display: none; }
+    .step.active { display: block; animation: stepIn 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
+    @keyframes stepIn {
+        from { opacity: 0; transform: translateX(10px); }
+        to   { opacity: 1; transform: translateX(0); }
+    }
+    .step.back { animation: stepBack 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
+    @keyframes stepBack {
+        from { opacity: 0; transform: translateX(-10px); }
+        to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Fields */
+    .field-g { margin-bottom: 1rem; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; }
+    .field-lbl { display: block; font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.9px; color: var(--text-muted); margin-bottom: 0.4rem; }
+    .field-wrap { position: relative; }
+    .field-icon { position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%); font-size: 0.85rem; color: var(--text-muted); opacity: 0.5; pointer-events: none; }
+    .field-inp {
+        width: 100%; padding: 0.82rem 1rem 0.82rem 2.5rem;
+        background: var(--bg); border: none; border-radius: 13px;
+        color: var(--text); font-size: 0.9rem; font-family: inherit; outline: none; transition: all 0.2s;
+        box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+    }
+    .field-inp.no-icon { padding-left: 1rem; }
+    .field-inp::placeholder { color: var(--text-muted); opacity: 0.55; }
+    .field-inp:focus { box-shadow: inset 4px 4px 8px var(--sh-dark), inset -4px -4px 8px var(--sh-light), 0 0 0 2px var(--accent); }
+    .field-inp.err { box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light), 0 0 0 2px #c0556a; }
+    .field-inp.pr { padding-right: 2.8rem; }
+    .eye-btn { position: absolute; right: 0.9rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); opacity: 0.5; font-size: 0.85rem; padding: 0; line-height: 1; }
+    .eye-btn:hover { opacity: 0.9; }
+    /* Masquer le bouton natif du navigateur (Edge/Chrome) */
+    input[type="password"]::-ms-reveal,
+    input[type="password"]::-ms-clear { display: none; }
+
+    /* Password strength */
+    .pwd-strength { margin-top: 0.5rem; }
+    .pwd-bars { display: flex; gap: 3px; margin-bottom: 0.25rem; }
+    .pwd-bar { flex: 1; height: 3px; border-radius: 99px; background: var(--sh-dark); transition: background 0.3s; }
+    .pwd-txt { font-size: 0.65rem; color: var(--text-muted); }
+
+    /* Role selector */
+    .role-lbl { display: block; font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.9px; color: var(--text-muted); margin-bottom: 0.6rem; }
+    .role-selector { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+    .role-opt {
+        display: flex; align-items: center; gap: 0.85rem;
+        padding: 0.8rem 0.95rem; border-radius: 14px; cursor: pointer;
+        box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light);
+        transition: all 0.2s; user-select: none;
+    }
+    .role-opt input[type="radio"] { display: none; }
+    .role-opt:has(input:checked) {
+        box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+    }
+    .role-opt-icon {
+        width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center; font-size: 1rem;
+        box-shadow: inset 2px 2px 5px var(--sh-dark), inset -2px -2px 5px var(--sh-light);
+        transition: all 0.2s;
+    }
+    .role-opt:has(input:checked) .role-opt-icon { box-shadow: 3px 3px 6px var(--sh-dark), -3px -3px 6px var(--sh-light); }
+    .role-opt-text { flex: 1; }
+    .role-opt-title { font-size: 0.87rem; font-weight: 700; color: var(--text-dim); }
+    .role-opt-desc  { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.05rem; }
+    .role-opt:has(input:checked) .role-opt-title { color: var(--accent-text); }
+    .role-opt-check { font-size: 0.9rem; color: transparent; }
+    .role-opt:has(input:checked) .role-opt-check { color: var(--accent-text); }
+
+    /* Summary */
+    .summary-card {
+        border-radius: 16px; padding: 1.1rem 1.25rem; margin-bottom: 1rem;
+        box-shadow: inset 3px 3px 7px var(--sh-dark), inset -3px -3px 7px var(--sh-light);
+    }
+    .sum-row {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 0.45rem 0; border-bottom: 1px solid var(--sh-dark); font-size: 0.83rem;
+    }
+    .sum-row:last-child { border-bottom: none; }
+    .sum-k { color: var(--text-muted); font-weight: 600; }
+    .sum-v { color: var(--text); font-weight: 800; }
+    .sum-badge {
+        padding: 0.2rem 0.65rem; border-radius: 99px; font-size: 0.72rem; font-weight: 800;
+        color: var(--accent-text);
+        box-shadow: inset 2px 2px 4px var(--sh-dark), inset -2px -2px 4px var(--sh-light);
+    }
+    .success-note {
+        text-align: center; font-size: 0.78rem; color: var(--text-muted); line-height: 1.55;
+        padding: 0.75rem; border-radius: 12px; margin-bottom: 1rem;
+        box-shadow: inset 2px 2px 5px var(--sh-dark), inset -2px -2px 5px var(--sh-light);
+    }
+
+    /* Errors */
+    .field-err { font-size: 0.72rem; color: #c0556a; margin-top: 0.3rem; }
+    .form-err-box {
+        padding: 1rem 1.25rem; border-radius: 14px; margin-bottom: 1.25rem;
+        font-size: 0.88rem; font-weight: 700; color: #b83a50;
+        background: rgba(192, 85, 106, 0.08);
+        border-left: 3px solid #c0556a;
+        box-shadow: 4px 4px 10px var(--sh-dark), -4px -4px 10px var(--sh-light);
+    }
+
+    /* Buttons */
+    .btn-row { display: flex; gap: 0.75rem; margin-top: 1.25rem; }
+    .btn-back {
+        flex: 0 0 auto; padding: 0.85rem 1.2rem;
+        background: var(--bg); border: none; border-radius: 13px;
+        color: var(--text-dim); font-size: 0.88rem; font-weight: 700; cursor: pointer; font-family: inherit;
+        box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light); transition: all 0.18s;
+    }
+    .btn-back:hover { color: var(--text); }
+    .btn-back:active { box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light); }
+
+    .btn-next, .btn-submit {
+        flex: 1; padding: 0.9rem;
+        background: var(--bg); border: none; border-radius: 13px;
+        color: var(--accent-text); font-size: 0.95rem; font-weight: 800; cursor: pointer; font-family: inherit;
+        box-shadow: 6px 6px 12px var(--sh-dark), -6px -6px 12px var(--sh-light); transition: all 0.2s;
+    }
+    .btn-next:hover, .btn-submit:hover { transform: translateY(-1px); box-shadow: 8px 8px 16px var(--sh-dark), -8px -8px 16px var(--sh-light); }
+    .btn-next:active, .btn-submit:active { box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light); transform: none; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="auth-page">
+
+    {# ══ GAUCHE ══ #}
+    <div class="auth-left">
+        <div class="left-logo">
+            <div class="left-logo-mark"><svg width="22" height="18" viewBox="0 0 20 16" fill="none"><path d="M1 4.5h14M11 1.5l4 3-4 3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 11.5H5M9 8.5l-4 3 4 3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <span class="left-logo-name">Crowdin</span>
+        </div>
+
+        <div class="steps-wrap">
+            <div id="sp1" class="step-item active">
+                <div class="step-circle">1</div>
+                <div class="step-text">
+                    <div class="step-sub">Étape 1 / 3</div>
+                    <div class="step-name">Informations</div>
+                </div>
+            </div>
+            <div id="sc1" class="step-connector"></div>
+            <div id="sp2" class="step-item">
+                <div class="step-circle">2</div>
+                <div class="step-text">
+                    <div class="step-sub">Étape 2 / 3</div>
+                    <div class="step-name">Sécurité & rôle</div>
+                </div>
+            </div>
+            <div id="sc2" class="step-connector"></div>
+            <div id="sp3" class="step-item">
+                <div class="step-circle">3</div>
+                <div class="step-text">
+                    <div class="step-sub">Étape 3 / 3</div>
+                    <div class="step-name">Confirmation</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="left-note">
+            <strong>Plateforme sécurisée.</strong> Vos données ne sont jamais partagées avec des tiers.
+        </div>
+    </div>
+
+    {# ══ DROITE ══ #}
+    <div class="auth-right">
+        <div class="form-card">
+
+            {% if app.flashes('error')|length > 0 %}
+                <div class="form-err-box">⚠ {% for msg in app.flashes('error') %}{{ msg }}{% endfor %}</div>
+            {% endif %}
+
+            <div class="prog-wrap">
+                <div class="prog-header">
+                    <span class="prog-label" id="pLabel">Informations</span>
+                    <span class="prog-count" id="pCount">1 / 3</span>
+                </div>
+                <div class="prog-track">
+                    <div class="prog-fill" id="pFill" style="width:33.3%"></div>
+                </div>
+            </div>
+
+            {{ form_start(form) }}
+
+            {# ── ÉTAPE 1 ── #}
+            <div class="step active" id="step1">
+                <h2>Créer un compte</h2>
+                <p class="form-sub">Déjà inscrit ? <a href="{{ path('app_login') }}">Se connecter →</a></p>
+
+                <div class="two-col">
+                    <div>
+                        <label class="field-lbl">Prénom</label>
+                        <div class="field-wrap">
+                            <span class="field-icon">👤</span>
+                            {{ form_widget(form.firstName, {attr: {class: 'field-inp', placeholder: 'Alice'}}) }}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="field-lbl">Nom</label>
+                        <div class="field-wrap">
+                            <span class="field-icon">👤</span>
+                            {{ form_widget(form.lastName, {attr: {class: 'field-inp', placeholder: 'Martin'}}) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field-g">
+                    <label class="field-lbl" for="{{ form.username.vars.id }}">Nom d'utilisateur</label>
+                    <div class="field-wrap">
+                        <span class="field-icon">@</span>
+                        {{ form_widget(form.username, {attr: {class: 'field-inp', placeholder: 'alice_martin'}}) }}
+                    </div>
+                    {{ form_errors(form.username) }}
+                </div>
+
+                <div class="field-g">
+                    <label class="field-lbl" for="{{ form.email.vars.id }}">Email</label>
+                    <div class="field-wrap">
+                        <span class="field-icon">✉</span>
+                        {{ form_widget(form.email, {attr: {class: 'field-inp', placeholder: 'alice@example.com'}}) }}
+                    </div>
+                    {{ form_errors(form.email) }}
+                </div>
+
+                <div class="btn-row">
+                    <button type="button" class="btn-next" onclick="goStep(2)">Continuer →</button>
+                </div>
+            </div>
+
+            {# ── ÉTAPE 2 ── #}
+            <div class="step" id="step2">
+                <h2>Sécurité & rôle</h2>
+                <p class="form-sub">Choisissez votre mot de passe et votre rôle.</p>
+
+                <div class="field-g">
+                    <label class="field-lbl" for="{{ form.password.vars.id }}">Mot de passe</label>
+                    <div class="field-wrap">
+                        <span class="field-icon">🔒</span>
+                        {{ form_widget(form.password, {attr: {class: 'field-inp pr', placeholder: '••••••••', autocomplete: 'new-password'}}) }}
+                        <button type="button" class="eye-btn" onclick="togglePwd(this)">🙈</button>
+                    </div>
+                    <div class="pwd-strength">
+                        <div class="pwd-bars">
+                            <div class="pwd-bar" id="pb1"></div>
+                            <div class="pwd-bar" id="pb2"></div>
+                            <div class="pwd-bar" id="pb3"></div>
+                            <div class="pwd-bar" id="pb4"></div>
+                        </div>
+                        <span class="pwd-txt" id="pTxt">Entrez un mot de passe</span>
+                    </div>
+                    {{ form_errors(form.password) }}
+                </div>
+
+                <span class="role-lbl">Je suis…</span>
+                <div class="role-selector">
+                    {% for child in form.roleChoice %}
+                    <label class="role-opt">
+                        <input type="radio"
+                               id="{{ child.vars.id }}"
+                               name="{{ child.vars.full_name }}"
+                               value="{{ child.vars.value }}"
+                               {% if child.vars.checked %}checked{% endif %}
+                               onchange="syncRole()">
+                        <div class="role-opt-icon">
+                            {% if child.vars.value == 'translator' %}🌍
+                            {% elseif child.vars.value == 'project_manager' %}⚙
+                            {% else %}★{% endif %}
+                        </div>
+                        <div class="role-opt-text">
+                            <div class="role-opt-title">{{ child.vars.label }}</div>
+                            <div class="role-opt-desc">
+                                {% if child.vars.value == 'translator' %}Traduire des chaînes, contribuer aux projets
+                                {% elseif child.vars.value == 'project_manager' %}Créer et gérer des projets de traduction
+                                {% else %}Accès complet traduction + gestion{% endif %}
+                            </div>
+                        </div>
+                        <span class="role-opt-check">✓</span>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <div class="btn-row">
+                    <button type="button" class="btn-back" onclick="goStep(1)">← Retour</button>
+                    <button type="button" class="btn-next" onclick="goStep(3)">Continuer →</button>
+                </div>
+            </div>
+
+            {# ── ÉTAPE 3 ── #}
+            <div class="step" id="step3">
+                <h2>Tout est prêt !</h2>
+                <p class="form-sub">Vérifiez vos informations avant de créer votre compte.</p>
+
+                <div class="summary-card">
+                    <div class="sum-row"><span class="sum-k">Prénom / Nom</span><span class="sum-v" id="sName">—</span></div>
+                    <div class="sum-row"><span class="sum-k">Utilisateur</span><span class="sum-v" id="sUser">—</span></div>
+                    <div class="sum-row"><span class="sum-k">Email</span><span class="sum-v" id="sEmail">—</span></div>
+                    <div class="sum-row"><span class="sum-k">Rôle</span><span class="sum-badge" id="sRole">—</span></div>
+                </div>
+
+                <div class="success-note">🎉 Après inscription vous serez redirigé vers votre tableau de bord.</div>
+
+                <div class="btn-row">
+                    <button type="button" class="btn-back" onclick="goStep(2)">← Retour</button>
+                    <button type="submit" class="btn-submit">Créer mon compte ✓</button>
+                </div>
+            </div>
+
+            {{ form_widget(form._token) }}
+            {{ form_end(form, {'render_rest': false}) }}
+
+        </div>
+    </div>
+
+    <div class="auth-footer">
+        &copy; 2026 Crowdin &mdash; <strong>Ilham &middot; Paulin &middot; Dan</strong>
+    </div>
+
+</div>
+
+<script>
+let cur = 1;
+const labels = ['Informations', 'Sécurité & rôle', 'Confirmation'];
+const widths  = ['33.3%', '66.6%', '100%'];
+
+function goStep(n, back) {
+    if (n === cur) return;
+    if (n > cur && !validate(cur)) return;
+    document.getElementById('step' + cur).classList.remove('active');
+    const el = document.getElementById('step' + n);
+    if (back) el.classList.add('back');
+    el.classList.add('active');
+    setTimeout(() => el.classList.remove('back'), 350);
+    document.getElementById('pLabel').textContent = labels[n - 1];
+    document.getElementById('pCount').textContent = n + ' / 3';
+    document.getElementById('pFill').style.width = widths[n - 1];
+    updateSide(n);
+    if (n === 3) fillSummary();
+    cur = n;
+}
+
+function validate(step) {
+    if (step === 1) {
+        const u = document.getElementById('{{ form.username.vars.id }}');
+        const e = document.getElementById('{{ form.email.vars.id }}');
+        let ok = true;
+        [u, e].forEach(f => {
+            f.classList.remove('err');
+            if (!f.value.trim()) { f.classList.add('err'); ok = false; }
+        });
+        return ok;
+    }
+    if (step === 2) {
+        const p = document.getElementById('{{ form.password.vars.id }}');
+        if (!p || !p.value || p.value.length < 6) {
+            if (p) { p.classList.add('err'); p.focus(); }
+            return false;
+        }
+        p.classList.remove('err');
+    }
+    return true;
+}
+
+function updateSide(n) {
+    for (let i = 1; i <= 3; i++) {
+        const el = document.getElementById('sp' + i);
+        el.classList.remove('active', 'done');
+        if (i < n) el.classList.add('done');
+        if (i === n) el.classList.add('active');
+    }
+    for (let i = 1; i <= 2; i++) {
+        document.getElementById('sc' + i).classList.toggle('done', i < n);
+    }
+}
+
+function fillSummary() {
+    const fn = document.getElementById('{{ form.firstName.vars.id }}').value;
+    const ln = document.getElementById('{{ form.lastName.vars.id }}').value;
+    const un = document.getElementById('{{ form.username.vars.id }}').value;
+    const em = document.getElementById('{{ form.email.vars.id }}').value;
+    const rm = { translator: '🌍 Traducteur', project_manager: '⚙ Chef de projet', both: '★ Chef & Traducteur' };
+    const re = document.querySelector('input[name="{{ form.roleChoice.vars.full_name }}"]:checked');
+    document.getElementById('sName').textContent  = [fn, ln].filter(Boolean).join(' ') || '—';
+    document.getElementById('sUser').textContent  = '@' + (un || '—');
+    document.getElementById('sEmail').textContent = em || '—';
+    document.getElementById('sRole').textContent  = re ? (rm[re.value] || re.value) : '—';
+}
+
+function syncRole() { if (cur === 3) fillSummary(); }
+
+function togglePwd(btn) {
+    const i = btn.previousElementSibling;
+    i.type = i.type === 'password' ? 'text' : 'password';
+    btn.textContent = i.type === 'password' ? '🙈' : '🙉';
+}
+
+/* Password strength */
+document.addEventListener('DOMContentLoaded', () => {
+    const p = document.getElementById('{{ form.password.vars.id }}');
+    if (!p) return;
+    const colors = ['', '#e85a6a', '#f59e0b', '#14b8a6', '#7c6ae8'];
+    const texts  = ['', 'Trop court', 'Faible', 'Bon', 'Excellent'];
+    p.addEventListener('input', () => {
+        const v = p.value;
+        let sc = 0;
+        if (v.length >= 6)  sc++;
+        if (v.length >= 10) sc++;
+        if (/[A-Z]/.test(v) && /[0-9]/.test(v)) sc++;
+        if (/[^A-Za-z0-9]/.test(v)) sc++;
+        for (let i = 1; i <= 4; i++) {
+            document.getElementById('pb' + i).style.background = i <= sc ? colors[sc] : 'var(--sh-dark)';
+        }
+        const txt = document.getElementById('pTxt');
+        txt.textContent = v ? texts[sc] : 'Entrez un mot de passe';
+        txt.style.color = sc ? colors[sc] : 'var(--text-muted)';
+    });
+
+    /* Revenir sur la bonne étape si Symfony renvoie des erreurs */
+    {% if form.password.vars.errors|length > 0 %}
+    goStep(2);
+    {% endif %}
+    {% if form.vars.submitted %}
+    document.querySelector('.auth-right').scrollTop = 0;
+    {% endif %}
+});
+</script>
+{% endblock %}

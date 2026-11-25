@@ -1,0 +1,263 @@
+{% extends 'base_app.html.twig' %}
+{% block title %}Importer du contenu — {{ project.name }}{% endblock %}
+{% block page_title %}Importer du contenu{% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block topbar_actions %}
+    <a href="{{ path('app_project_show', {id: project.id}) }}" class="btn btn-outline">← Retour</a>
+{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .import-wrap { max-width: 720px; }
+
+    .import-header { margin-bottom: 2rem; }
+    .import-header h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.6px; margin-bottom: 0.3rem; }
+    .import-header p { color: var(--text-muted); font-size: 0.88rem; }
+
+    .tabs {
+        display: flex;
+        gap: 0.35rem;
+        margin-bottom: 1.5rem;
+        border-radius: 16px;
+        padding: 0.4rem;
+        box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+    }
+
+    .tab-btn {
+        flex: 1;
+        padding: 0.7rem 1rem;
+        border: none;
+        border-radius: 12px;
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.18s;
+        font-family: inherit;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .tab-btn.active {
+        color: var(--role-text);
+        box-shadow: 3px 3px 6px var(--sh-dark), -3px -3px 6px var(--sh-light);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .import-textarea {
+        width: 100%;
+        min-height: 240px;
+        padding: 1rem 1.1rem;
+        background: var(--bg);
+        border: none;
+        border-radius: 14px;
+        color: var(--text);
+        font-size: 0.92rem;
+        font-family: inherit;
+        line-height: 1.8;
+        resize: vertical;
+        outline: none;
+        transition: all 0.2s;
+        box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+    }
+
+    .import-textarea:focus {
+        box-shadow: inset 4px 4px 8px var(--sh-dark), inset -4px -4px 8px var(--sh-light), 0 0 0 2px var(--role-a);
+    }
+
+    .import-textarea::placeholder { color: var(--text-muted); opacity: 0.6; }
+
+    .counter {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.5rem;
+    }
+
+    .counter strong { color: var(--role-text); }
+
+    /* Upload zone */
+    .upload-zone {
+        border-radius: 18px;
+        padding: 3rem 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+        box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+    }
+
+    .upload-zone:hover,
+    .upload-zone.drag-over {
+        box-shadow: inset 4px 4px 8px var(--sh-dark), inset -4px -4px 8px var(--sh-light), 0 0 0 2px var(--role-a);
+    }
+
+    .upload-zone input[type="file"] {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+        width: 100%;
+        height: 100%;
+    }
+
+    .upload-icon { font-size: 2.5rem; opacity: 0.4; margin-bottom: 1rem; }
+
+    .upload-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.35rem; }
+
+    .upload-sub { font-size: 0.8rem; color: var(--text-muted); }
+
+    .upload-formats {
+        margin-top: 1rem;
+        display: flex;
+        justify-content: center;
+        gap: 0.4rem;
+    }
+
+    .fmt-badge {
+        font-size: 0.68rem;
+        font-weight: 700;
+        padding: 0.22rem 0.55rem;
+        border-radius: 6px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 2px 2px 4px var(--sh-dark), -2px -2px 4px var(--sh-light);
+    }
+
+    .file-selected {
+        display: none;
+        margin-top: 1rem;
+        padding: 0.8rem 1.1rem;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        color: #2f9e6e;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 4px 4px 8px var(--sh-dark), -4px -4px 8px var(--sh-light);
+    }
+
+    .file-selected.visible { display: flex; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="import-wrap fade-up">
+
+    <div class="import-header">
+        <h1>Importer dans <span class="grad">{{ project.name }}</span></h1>
+        <p>{{ project.targetLanguages|length }} langue(s) cible(s) · chaque ligne devient une chaîne à traduire.</p>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" id="import-form">
+
+        <div class="tabs">
+            <button type="button" class="tab-btn active" onclick="switchTab('text', this)">
+                ✎ Saisir du texte
+            </button>
+            <button type="button" class="tab-btn" onclick="switchTab('file', this)">
+                ↑ Importer un fichier
+            </button>
+        </div>
+
+        {# ── ONGLET TEXTE ── #}
+        <div class="tab-panel active" id="panel-text">
+            <textarea
+                class="import-textarea"
+                name="bulk_text"
+                id="bulk-textarea"
+                placeholder="Collez votre texte ici, une phrase par ligne...
+
+Bienvenue sur notre application
+Connectez-vous pour continuer
+Votre profil a été mis à jour
+Page introuvable"
+                oninput="updateCounter()"
+            ></textarea>
+            <div class="counter" id="line-counter"></div>
+        </div>
+
+        {# ── ONGLET FICHIER ── #}
+        <div class="tab-panel" id="panel-file">
+            <div class="upload-zone" id="upload-zone">
+                <input type="file" name="import_file" id="file-input" accept=".txt,.csv,.po,.xlf,.xliff" onchange="onFileSelected(this)">
+                <div class="upload-icon">📄</div>
+                <div class="upload-title">Glissez votre fichier ici</div>
+                <div class="upload-sub">ou cliquez pour parcourir</div>
+                <div class="upload-formats">
+                    <span class="fmt-badge">.txt</span>
+                    <span class="fmt-badge">.csv</span>
+                </div>
+            </div>
+            <div class="file-selected" id="file-selected">
+                <span>✓</span>
+                <span id="file-name"></span>
+            </div>
+            <div class="counter" id="file-counter" style="margin-top:0.5rem;"></div>
+        </div>
+
+        <input type="hidden" name="mode" id="import-mode" value="text">
+
+        <div style="margin-top:1.5rem;display:flex;gap:0.75rem;">
+            <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center;padding:0.9rem;">
+                Importer →
+            </button>
+            <a href="{{ path('app_project_show', {id: project.id}) }}" class="btn btn-outline">Annuler</a>
+        </div>
+
+    </form>
+
+</div>
+
+<script>
+function switchTab(tab, btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + tab).classList.add('active');
+    document.getElementById('import-mode').value = tab;
+}
+
+function updateCounter() {
+    const lines = document.getElementById('bulk-textarea').value
+        .split('\n').filter(l => l.trim() !== '');
+    const el = document.getElementById('line-counter');
+    el.innerHTML = lines.length > 0 ? '<strong>' + lines.length + '</strong> phrase(s) détectée(s)' : '';
+}
+
+function onFileSelected(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    document.getElementById('file-name').textContent = file.name;
+    document.getElementById('file-selected').classList.add('visible');
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const lines = e.target.result.split('\n').filter(l => l.trim() !== '');
+        document.getElementById('file-counter').innerHTML =
+            '<strong>' + lines.length + '</strong> ligne(s) détectée(s)';
+    };
+    reader.readAsText(file);
+}
+
+// Drag & drop visuel
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+        document.getElementById('file-input').files = e.dataTransfer.files;
+        onFileSelected(document.getElementById('file-input'));
+    }
+});
+</script>
+{% endblock %}

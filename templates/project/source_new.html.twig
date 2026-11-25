@@ -1,0 +1,190 @@
+{% extends 'base_app.html.twig' %}
+{% block title %}Ajouter une source — {{ project.name }}{% endblock %}
+{% block page_title %}Ajouter une source{% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block topbar_actions %}
+    <a href="{{ path('app_project_show', {id: project.id}) }}" class="btn btn-outline">← Retour au projet</a>
+{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .source-wrap { max-width: 600px; }
+
+    .field-group { margin-bottom: 1.25rem; }
+
+    .field-label {
+        display: block;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.45rem;
+    }
+
+    .field-hint { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem; opacity: 0.8; }
+
+    .field-input, .field-textarea {
+        width: 100%;
+        padding: 0.78rem 1rem;
+        background: var(--bg);
+        border: none;
+        border-radius: 13px;
+        color: var(--text);
+        font-size: 0.9rem;
+        font-family: inherit;
+        outline: none;
+        box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+        transition: all 0.2s;
+    }
+
+    .field-input:focus, .field-textarea:focus {
+        box-shadow: inset 4px 4px 8px var(--sh-dark), inset -4px -4px 8px var(--sh-light), 0 0 0 2px var(--role-a);
+    }
+
+    .field-input::placeholder, .field-textarea::placeholder { color: var(--text-muted); opacity: 0.6; }
+    .field-textarea { resize: vertical; min-height: 110px; }
+    .field-input[name=source_key] { font-family: monospace; font-size: 0.95rem; }
+
+    .btn-row { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+
+    .preview-box {
+        border-radius: 14px;
+        padding: 1.25rem 1.4rem;
+        margin-bottom: 1.5rem;
+        box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+    }
+
+    .preview-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; }
+    .preview-row { display: flex; gap: 1rem; align-items: baseline; font-size: 0.88rem; }
+    .preview-key { font-family: monospace; color: var(--role-text); flex-shrink: 0; font-size: 0.82rem; }
+    .preview-content { color: var(--text-dim); flex: 1; }
+
+    .lang-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; }
+    .lang-chip {
+        font-size: 0.62rem;
+        font-weight: 700;
+        padding: 0.18rem 0.5rem;
+        border-radius: 6px;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 2px 2px 4px var(--sh-dark), -2px -2px 4px var(--sh-light);
+    }
+
+    .error-box {
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        margin-bottom: 1.25rem;
+        color: #c0556a;
+        box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="source-wrap fade-up">
+
+    {% for msg in app.flashes('success') %}
+        <div class="flash-success">✓ {{ msg }}</div>
+    {% endfor %}
+    {% for msg in app.flashes('error') %}
+        <div class="error-box">⚠ {{ msg }}</div>
+    {% endfor %}
+
+    {# Infos du projet #}
+    <div class="preview-box" style="margin-bottom:1.5rem;">
+        <div class="preview-label">Projet</div>
+        <div style="font-weight:700;font-size:0.95rem;margin-bottom:0.5rem;">{{ project.name }}</div>
+        {% if project.sourceLanguage %}
+            <div style="font-size:0.8rem;color:var(--text-muted);">
+                Source : <strong>{{ project.sourceLanguage.name }}</strong>
+            </div>
+        {% endif %}
+        <div class="lang-chips" style="margin-top:0.6rem;">
+            {% for lang in project.targetLanguages %}
+                <span class="lang-chip">{{ lang.code }}</span>
+            {% endfor %}
+        </div>
+        {% if project.targetLanguages is empty %}
+            <div style="color:#c0556a;font-size:0.82rem;margin-top:0.5rem;">
+                ⚠ Aucune langue cible définie. <a href="{{ path('app_project_edit', {id: project.id}) }}" style="color:var(--role-text);">Configurer le projet →</a>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if error %}
+        <div class="error-box">⚠ {{ error }}</div>
+    {% endif %}
+
+    <div class="glass" style="padding:1.75rem;">
+        <form method="POST">
+
+            <div class="field-group">
+                <label class="field-label" for="source_key">Clé</label>
+                <input
+                    class="field-input"
+                    type="text"
+                    id="source_key"
+                    name="source_key"
+                    placeholder="homepage_title"
+                    required
+                    autocomplete="off"
+                    oninput="updatePreview()"
+                >
+                <div class="field-hint">Identifiant unique, ex : <code>homepage_title</code>, <code>btn_submit</code>, <code>error_404</code></div>
+            </div>
+
+            <div class="field-group">
+                <label class="field-label" for="source_content">Contenu (langue source)</label>
+                <textarea
+                    class="field-textarea"
+                    id="source_content"
+                    name="source_content"
+                    placeholder="Bienvenue sur notre plateforme"
+                    required
+                    oninput="updatePreview()"
+                ></textarea>
+            </div>
+
+            {# Prévisualisation live #}
+            <div class="preview-box" id="preview-box" style="display:none;">
+                <div class="preview-label">Aperçu</div>
+                <div class="preview-row">
+                    <span class="preview-key" id="prev-key"></span>
+                    <span class="preview-content" id="prev-content"></span>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center;" {% if project.targetLanguages is empty %}disabled{% endif %}>
+                    Ajouter →
+                </button>
+                <button type="submit" name="add_another" value="1" class="btn btn-outline" {% if project.targetLanguages is empty %}disabled{% endif %}>
+                    Ajouter & continuer
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+</div>
+
+<script>
+function updatePreview() {
+    const key     = document.getElementById('source_key').value.trim();
+    const content = document.getElementById('source_content').value.trim();
+    const box     = document.getElementById('preview-box');
+
+    if (key || content) {
+        document.getElementById('prev-key').textContent     = key     || '…';
+        document.getElementById('prev-content').textContent = content || '…';
+        box.style.display = 'block';
+    } else {
+        box.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

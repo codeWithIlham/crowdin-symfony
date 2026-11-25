@@ -1,0 +1,237 @@
+{% extends 'base.html.twig' %}
+{% block title %}Contact — Crowdin{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .contact-wrap { max-width: 760px; margin: 0 auto; padding: 5rem 2rem 6rem; }
+
+    .contact-header { text-align: center; margin-bottom: 3rem; }
+    .contact-header h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 900; letter-spacing: -2px; margin-bottom: 0.5rem; color: var(--text); }
+    .contact-header p { color: var(--text-muted); }
+
+    .tabs {
+        display: flex;
+        gap: 0.4rem;
+        margin-bottom: 2rem;
+        padding: 0.4rem;
+        border-radius: 16px;
+        box-shadow: inset 4px 4px 8px var(--sh-dark), inset -4px -4px 8px var(--sh-light);
+    }
+
+    .tab-btn {
+        flex: 1;
+        padding: 0.7rem 0.5rem;
+        border: none;
+        border-radius: 12px;
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.18s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+    }
+
+    .tab-btn.active {
+        color: var(--accent-text);
+        box-shadow: 4px 4px 8px var(--sh-dark), -4px -4px 8px var(--sh-light);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .form-card {
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 8px 8px 16px var(--sh-dark), -8px -8px 16px var(--sh-light);
+    }
+
+    .field-group { margin-bottom: 1.1rem; }
+
+    .field-label {
+        display: block;
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.45rem;
+    }
+
+    .field-input {
+        width: 100%;
+        padding: 0.78rem 1rem;
+        background: var(--bg);
+        border: none;
+        border-radius: 12px;
+        color: var(--text);
+        font-size: 0.9rem;
+        font-family: inherit;
+        outline: none;
+        box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+        transition: all 0.2s;
+    }
+
+    .field-input:focus { box-shadow: inset 4px 4px 8px var(--sh-dark), inset -4px -4px 8px var(--sh-light), 0 0 0 2px var(--accent); }
+    .field-input::placeholder { color: var(--text-muted); opacity: 0.6; }
+    textarea.field-input { resize: vertical; min-height: 100px; }
+
+    .radio-group { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+
+    .radio-option {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.9rem;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-dim);
+        box-shadow: 3px 3px 6px var(--sh-dark), -3px -3px 6px var(--sh-light);
+        transition: all 0.18s;
+    }
+
+    .radio-option input { display: none; }
+    .radio-option:has(input:checked) { color: var(--accent-text); box-shadow: inset 2px 2px 4px var(--sh-dark), inset -2px -2px 4px var(--sh-light); }
+
+    .submit-btn {
+        width: 100%;
+        padding: 0.9rem;
+        margin-top: 0.5rem;
+        border: none;
+        border-radius: 14px;
+        color: var(--accent-text);
+        font-size: 0.95rem;
+        font-weight: 800;
+        cursor: pointer;
+        font-family: inherit;
+        box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light);
+        transition: all 0.2s;
+    }
+
+    .submit-btn:hover { transform: translateY(-1px); box-shadow: 7px 7px 14px var(--sh-dark), -7px -7px 14px var(--sh-light); }
+    .submit-btn:active { box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light); transform: none; }
+
+    .flash-box {
+        padding: 0.85rem 1.1rem;
+        border-radius: 14px;
+        font-size: 0.88rem;
+        margin-bottom: 1.25rem;
+        box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light);
+    }
+
+    .flash-success { color: #2f9e6e; }
+    .flash-error   { color: #c0556a; }
+
+    /* Changelog */
+    .changelog-list { display: flex; flex-direction: column; gap: 1rem; }
+
+    .changelog-item {
+        display: grid;
+        grid-template-columns: 80px 50px 1fr;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        border-radius: 14px;
+        box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light);
+    }
+
+    .changelog-date { font-size: 0.72rem; color: var(--text-muted); }
+    .changelog-version { font-size: 0.72rem; font-weight: 800; color: var(--accent-text); }
+
+    .changelog-label {
+        display: inline-block;
+        font-size: 0.62rem;
+        font-weight: 800;
+        padding: 0.15rem 0.45rem;
+        border-radius: 5px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-right: 0.5rem;
+        box-shadow: inset 2px 2px 3px var(--sh-dark), inset -2px -2px 3px var(--sh-light);
+    }
+
+    .label-feature { color: var(--accent-text); }
+    .label-fix     { color: #2f9e6e; }
+    .label-initial { color: var(--text-muted); }
+
+    .changelog-text { font-size: 0.88rem; color: var(--text); }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="contact-wrap">
+
+    <div class="contact-header">
+        <h1>Espace <span style="color:var(--accent-text);">contact</span></h1>
+        <p>Changelog ou signalement de bug.</p>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn {% if active_tab == 'changelog' %}active{% endif %}" onclick="switchTab('changelog', this)">
+            📋 Changelog
+        </button>
+        {% if app.user and not is_granted('ROLE_ADMIN') %}
+        <button class="tab-btn {% if active_tab == 'bug' %}active{% endif %}" onclick="switchTab('bug', this)">
+            🐛 Signaler un bug
+        </button>
+        {% endif %}
+    </div>
+
+    {# ── CHANGELOG ── #}
+    <div class="tab-panel {% if active_tab == 'changelog' %}active{% endif %}" id="panel-changelog">
+        <div class="changelog-list">
+            {% for entry in changelog %}
+            <div class="changelog-item">
+                <span class="changelog-date">{{ entry.date }}</span>
+                <span class="changelog-version">{{ entry.version }}</span>
+                <div>
+                    <span class="changelog-label label-{{ entry.label }}">{{ entry.label }}</span>
+                    <span class="changelog-text">{{ entry.text }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# ── RAPPORT DE BUG ── #}
+    <div class="tab-panel {% if active_tab == 'bug' and not is_granted('ROLE_ADMIN') %}active{% endif %}" id="panel-bug">
+        {% for msg in app.flashes('success_bug') %}
+            <div class="flash-box flash-success">✓ {{ msg }}</div>
+        {% endfor %}
+        <div class="form-card">
+            <form method="POST">
+                <input type="hidden" name="form_type" value="bug">
+                <div class="field-group">
+                    <label class="field-label">Titre du bug</label>
+                    <input class="field-input" type="text" name="bug_title" placeholder="Ex: Le bouton Approuver ne fonctionne pas" required>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Page concernée</label>
+                    <input class="field-input" type="text" name="bug_page" placeholder="Ex: /projects/3/review">
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Description</label>
+                    <textarea class="field-input" name="bug_desc" placeholder="Décrivez ce qui se passe, comment le reproduire..." required></textarea>
+                </div>
+                <button type="submit" class="submit-btn">Signaler le bug →</button>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function switchTab(tab, btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + tab).classList.add('active');
+}
+</script>
+{% endblock %}

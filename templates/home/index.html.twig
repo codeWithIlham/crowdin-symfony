@@ -1,0 +1,360 @@
+{% extends 'base.html.twig' %}
+{% block title %}Crowdin — Plateforme de traduction{% endblock %}
+
+{% block stylesheets %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@700;900&family=Noto+Sans+JP:wght@700;900&family=Noto+Sans+SC:wght@700;900&family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet">
+<style>
+    html, body { overflow-x: hidden; }
+
+    .landing {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 6rem 2rem 4rem;
+        position: relative;
+    }
+
+    /* ── TABLEAU DE DÉPARTS ── */
+    .dep-board {
+        width: 100%;
+        max-width: 680px;
+        background: var(--bg);
+        border-radius: 20px;
+        padding: 0;
+        overflow: hidden;
+        box-shadow: 10px 10px 22px var(--sh-dark), -10px -10px 22px var(--sh-light);
+        margin-bottom: 3rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .dep-header {
+        display: grid;
+        grid-template-columns: 90px 1fr 130px;
+        padding: 0.65rem 1.5rem;
+        border-bottom: 1px solid var(--sh-dark);
+    }
+    .dep-header span {
+        font-size: 0.55rem;
+        font-weight: 800;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+
+    .dep-row {
+        display: grid;
+        grid-template-columns: 110px 1fr 130px;
+        align-items: center;
+        padding: 0.9rem 1.5rem;
+        border-bottom: 1px solid var(--sh-dark);
+        transition: box-shadow 0.2s;
+    }
+    .dep-row:last-child { border-bottom: none; }
+
+    .dep-lang {
+        font-size: 0.58rem;
+        font-weight: 800;
+        letter-spacing: 1px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+    }
+
+    .dep-word {
+        font-size: clamp(1.3rem, 3.5vw, 2rem);
+        font-weight: 900;
+        color: var(--text);
+        letter-spacing: -0.5px;
+        font-family: 'Courier New', 'Courier', monospace;
+        min-height: 1.4em;
+        display: flex;
+        align-items: center;
+    }
+    .dep-word[data-script="ar"] {
+        font-family: 'Noto Sans Arabic', sans-serif;
+        direction: rtl;
+        letter-spacing: 0;
+        font-weight: 700;
+    }
+    .dep-word[data-script="ja"] {
+        font-family: 'Noto Sans JP', sans-serif;
+        letter-spacing: 0.05em;
+        font-weight: 700;
+    }
+    .dep-word[data-script="zh"] {
+        font-family: 'Noto Sans SC', sans-serif;
+        letter-spacing: 0.05em;
+        font-weight: 700;
+    }
+    .dep-word[data-script="ko"] {
+        font-family: 'Noto Sans KR', sans-serif;
+        letter-spacing: 0;
+    }
+
+    .dep-char {
+        display: inline-block;
+        min-width: 0.62em;
+        text-align: center;
+    }
+    .dep-char.scrambling { color: var(--accent-text); opacity: 0.4; }
+
+    .dep-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        justify-content: flex-end;
+    }
+    .dep-dot {
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    .dep-status-text {
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+
+    .s-done   { color: #2f9e6e; }
+    .s-done   .dep-dot { background: #2f9e6e; box-shadow: 0 0 5px rgba(47,158,110,0.5); }
+    .s-active { color: var(--accent-text); }
+    .s-active .dep-dot { background: var(--accent); box-shadow: 0 0 5px rgba(124,106,232,0.5); animation: blink 1.2s ease-in-out infinite; }
+    .s-wait   { color: var(--text-muted); }
+    .s-wait   .dep-dot { background: var(--sh-dark); }
+
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.25; }
+    }
+
+    .dep-ticker {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.55rem 1.5rem;
+        border-top: 1px solid var(--sh-dark);
+        background: rgba(124,106,232,0.04);
+    }
+    .dep-ticker-label {
+        font-size: 0.55rem;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+    }
+    .dep-ticker-num {
+        font-size: 0.65rem;
+        font-weight: 800;
+        color: var(--accent-text);
+        font-family: monospace;
+    }
+
+    /* ── BASELINE ── */
+    .hero-baseline {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .hero-baseline p {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        line-height: 1.6;
+        max-width: 380px;
+        margin: 0 auto 1.75rem;
+    }
+
+    .cta-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .btn-cta-primary {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.9rem 2.2rem;
+        border-radius: 99px;
+        font-size: 0.95rem;
+        font-weight: 800;
+        text-decoration: none;
+        color: var(--accent-text);
+        background: var(--bg);
+        box-shadow: 8px 8px 16px var(--sh-dark), -8px -8px 16px var(--sh-light);
+        transition: all 0.22s;
+    }
+    .btn-cta-primary::before {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        border-radius: 99px;
+        box-shadow: 8px 8px 16px var(--sh-dark), -8px -8px 16px var(--sh-light);
+        animation: pulse-ring 2s ease-in-out infinite;
+        pointer-events: none;
+    }
+    @keyframes pulse-ring {
+        0%   { opacity: 0.5; transform: scale(1); }
+        70%  { opacity: 0; transform: scale(1.1); }
+        100% { opacity: 0; transform: scale(1.1); }
+    }
+    .btn-cta-primary:hover { transform: translateY(-2px); }
+
+    .btn-cta-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.9rem 1.8rem;
+        border-radius: 99px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        text-decoration: none;
+        color: var(--text-muted);
+        background: var(--bg);
+        box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light);
+        transition: all 0.22s;
+    }
+    .btn-cta-secondary:hover { color: var(--text); transform: translateY(-2px); }
+
+    /* Deco */
+    .deco-circle { position: absolute; border-radius: 50%; pointer-events: none; }
+    .deco-circle-1 { width: 400px; height: 400px; top: -100px; left: -120px; box-shadow: 20px 20px 40px var(--sh-dark), -20px -20px 40px var(--sh-light); opacity: 0.3; }
+    .deco-circle-2 { width: 260px; height: 260px; bottom: 80px; right: -60px; box-shadow: 15px 15px 30px var(--sh-dark), -15px -15px 30px var(--sh-light); opacity: 0.2; }
+
+    @media (max-width: 600px) {
+        .dep-row { grid-template-columns: 60px 1fr 90px; padding: 0.7rem 1rem; }
+        .dep-header { grid-template-columns: 60px 1fr 90px; padding: 0.5rem 1rem; }
+        .dep-word { font-size: 1.1rem; }
+        .dep-ticker { padding: 0.4rem 1rem; }
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="landing">
+
+    <div class="deco-circle deco-circle-1"></div>
+    <div class="deco-circle deco-circle-2"></div>
+
+    <div class="dep-board fade-up" id="depBoard">
+        <div class="dep-header">
+            <span>Langue</span>
+            <span>Traduction</span>
+            <span style="text-align:right">Statut</span>
+        </div>
+        <div id="depRows"></div>
+        <div class="dep-ticker">
+            <span class="dep-ticker-label">Crowdin — En direct</span>
+            <span class="dep-ticker-num" id="depCount">0 chaînes traduites</span>
+        </div>
+    </div>
+
+    <div class="hero-baseline fade-up">
+        <p>Importez votre contenu, assignez des traducteurs,<br>révisez et livrez — tout en équipe.</p>
+        <div class="cta-buttons">
+            {% if app.user %}
+                <a href="{{ path('app_dashboard') }}" class="btn-cta-primary">Mon espace →</a>
+                <a href="{{ path('app_logout') }}" class="btn-cta-secondary">Déconnexion</a>
+            {% else %}
+                <a href="{{ path('app_login') }}" class="btn-cta-primary">Commencer →</a>
+                <a href="{{ path('app_register') }}" class="btn-cta-secondary">Créer un compte</a>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+<script>
+(function () {
+    const ROWS = [
+        { lang: 'Français',  script: 'latin', words: ['Bonjour', 'Merci', 'Bienvenue', 'Livrer'],   status: 'done'   },
+        { lang: 'Japonais',  script: 'ja',    words: ['こんにちは', 'ありがとう', 'ようこそ', '翻訳'],  status: 'active' },
+        { lang: 'Arabe',     script: 'ar',    words: ['مرحباً', 'شكراً', 'أهلاً وسهلاً', 'مشروع'],   status: 'active' },
+        { lang: 'Espagnol',  script: 'latin', words: ['Hola', 'Gracias', 'Bienvenido', 'Proyecto'],  status: 'wait'   },
+        { lang: 'Chinois',   script: 'zh',    words: ['你好', '谢谢你', '欢迎', '翻译项目'],           status: 'wait'   },
+    ];
+
+    const STATUS_LABELS = {
+        done:   { text: 'Approuvé',   cls: 's-done'   },
+        active: { text: 'En cours',   cls: 's-active'  },
+        wait:   { text: 'En attente', cls: 's-wait'    },
+    };
+
+    const LATIN = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const container = document.getElementById('depRows');
+    const counter   = document.getElementById('depCount');
+    let totalCount  = Math.floor(Math.random() * 400) + 800;
+
+    const rowEls = ROWS.map((r, i) => {
+        const row = document.createElement('div');
+        row.className = 'dep-row';
+        const sl = STATUS_LABELS[r.status];
+        const scriptAttr = r.script !== 'latin' ? `data-script="${r.script}"` : '';
+        row.innerHTML = `
+            <span class="dep-lang">${r.lang}</span>
+            <span class="dep-word" id="word${i}" ${scriptAttr}></span>
+            <span class="dep-status ${sl.cls}">
+                <span class="dep-dot"></span>
+                <span class="dep-status-text">${sl.text}</span>
+            </span>`;
+        container.appendChild(row);
+        return { el: document.getElementById('word' + i), data: r, wordIdx: 0 };
+    });
+
+    function revealWord(el, target, isLatin) {
+        const chars = Array.from(target);
+
+        if (!isLatin) {
+            /* Fade in directly for non-latin scripts */
+            el.style.opacity = '0';
+            el.textContent = target;
+            el.style.transition = 'opacity 0.4s ease';
+            requestAnimationFrame(() => requestAnimationFrame(() => { el.style.opacity = '1'; }));
+            return;
+        }
+
+        /* Scramble effect for latin */
+        let frame = 0;
+        const totalFrames = 12 + chars.length * 2;
+        el.style.opacity = '1';
+        el.style.transition = '';
+        el.innerHTML = chars.map(() => `<span class="dep-char scrambling">_</span>`).join('');
+        const spans = el.querySelectorAll('.dep-char');
+
+        const tick = setInterval(() => {
+            frame++;
+            spans.forEach((s, i) => {
+                const revealAt = Math.floor((i / chars.length) * (totalFrames * 0.65));
+                if (frame > totalFrames) {
+                    s.textContent = chars[i];
+                    s.classList.remove('scrambling');
+                } else if (frame > revealAt && Math.random() > 0.4) {
+                    s.textContent = chars[i];
+                    s.classList.remove('scrambling');
+                } else {
+                    s.textContent = LATIN[Math.floor(Math.random() * LATIN.length)];
+                }
+            });
+            if (frame > totalFrames) clearInterval(tick);
+        }, 50);
+    }
+
+    rowEls.forEach(r => revealWord(r.el, r.data.words[0], r.data.script === 'latin'));
+
+    let ri = 0;
+    setInterval(() => {
+        const r = rowEls[ri % rowEls.length];
+        r.wordIdx = (r.wordIdx + 1) % r.data.words.length;
+        revealWord(r.el, r.data.words[r.wordIdx], r.data.script === 'latin');
+        ri++;
+        totalCount += Math.floor(Math.random() * 4) + 1;
+        counter.textContent = totalCount.toLocaleString('fr-FR') + ' chaînes traduites';
+    }, 2000);
+})();
+</script>
+{% endblock %}

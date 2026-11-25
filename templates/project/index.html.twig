@@ -1,0 +1,359 @@
+{% extends 'base_app.html.twig' %}
+{% block title %}Projets — Crowdin{% endblock %}
+{% block page_title %}
+    {% if is_granted('ROLE_ADMIN') %}Tous les projets
+    {% elseif is_granted('ROLE_PROJECT_MANAGER') %}Mes projets
+    {% else %}Projets disponibles{% endif %}
+{% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block topbar_actions %}
+    {% if is_granted('ROLE_PROJECT_MANAGER') %}
+        <a href="{{ path('app_project_new') }}" class="btn btn-primary">＋ Nouveau projet</a>
+    {% endif %}
+{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .page-hero { margin-bottom: 2rem; }
+    .page-hero h1 { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.7px; margin-bottom: 0.3rem; }
+    .page-hero p  { color: var(--text-muted); font-size: 0.85rem; }
+
+    /* ── Document card grid ── */
+    .doc-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+        gap: 1.1rem;
+    }
+
+    .doc-card {
+        border-radius: 18px; padding: 1.35rem;
+        display: flex; flex-direction: column; gap: 0.85rem;
+        transition: all 0.2s; color: inherit;
+        box-shadow: 7px 7px 14px var(--sh-dark), -7px -7px 14px var(--sh-light);
+    }
+    .doc-card:hover { transform: translateY(-2px); box-shadow: 9px 9px 18px var(--sh-dark), -9px -9px 18px var(--sh-light); }
+
+    /* Paper icon + header */
+    .doc-head { display: flex; align-items: flex-start; gap: 0.8rem; }
+
+    .doc-paper {
+        width: 40px; height: 46px; flex-shrink: 0;
+        border-radius: 8px 14px 8px 8px;
+        box-shadow: 4px 4px 8px var(--sh-dark), -4px -4px 8px var(--sh-light);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1rem; position: relative;
+    }
+    .doc-paper::after {
+        content: ''; position: absolute; top: 0; right: 0;
+        width: 11px; height: 11px;
+        background: var(--sh-dark); opacity: 0.35;
+        clip-path: polygon(100% 0, 0 0, 100% 100%);
+        border-radius: 0 14px 0 0;
+    }
+
+    .doc-info { flex: 1; min-width: 0; }
+    .doc-name {
+        font-size: 0.92rem; font-weight: 800; letter-spacing: -0.2px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        margin-bottom: 0.3rem;
+    }
+
+    .doc-langs { display: flex; align-items: center; flex-wrap: wrap; gap: 0.3rem; }
+    .chip-src {
+        font-size: 0.58rem; font-weight: 800; padding: 0.15rem 0.45rem;
+        border-radius: 5px; text-transform: uppercase; letter-spacing: 0.5px;
+        color: var(--text-dim);
+        box-shadow: inset 2px 2px 3px var(--sh-dark), inset -2px -2px 3px var(--sh-light);
+    }
+    .chip-arrow { color: var(--text-muted); font-size: 0.62rem; }
+    .chip-tgt {
+        font-size: 0.58rem; font-weight: 800; padding: 0.15rem 0.45rem;
+        border-radius: 5px; text-transform: uppercase; letter-spacing: 0.5px;
+        color: var(--role-text);
+        box-shadow: 2px 2px 3px var(--sh-dark), -2px -2px 3px var(--sh-light);
+    }
+
+    .doc-pct {
+        flex-shrink: 0; font-size: 0.7rem; font-weight: 800;
+        padding: 0.28rem 0.55rem; border-radius: 8px;
+        box-shadow: inset 2px 2px 3px var(--sh-dark), inset -2px -2px 3px var(--sh-light);
+    }
+    .doc-pct.pct-done { color: #2f9e6e; }
+    .doc-pct.pct-mid  { color: var(--role-text); }
+    .doc-pct.pct-low  { color: var(--text-muted); }
+
+    /* Meta chips */
+    .doc-meta { display: flex; gap: 0.45rem; flex-wrap: wrap; }
+    .mc {
+        display: inline-flex; align-items: center; gap: 0.2rem;
+        font-size: 0.65rem; font-weight: 600; color: var(--text-muted);
+        padding: 0.18rem 0.5rem; border-radius: 7px;
+        box-shadow: inset 2px 2px 3px var(--sh-dark), inset -2px -2px 3px var(--sh-light);
+    }
+    .mc.warn { color: #c97a2e; }
+    .mc.ok   { color: #2f9e6e; }
+
+    .owner-row { display: flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; color: var(--text-muted); }
+
+    /* ── Timeline pipeline ── */
+    .tl-wrap { display: flex; flex-direction: column; gap: 0.28rem; }
+    .tl-dots {
+        display: grid;
+        grid-template-columns: auto 1fr auto 1fr auto 1fr auto 1fr auto;
+        align-items: center;
+    }
+    .tl-dot {
+        width: 9px; height: 9px; border-radius: 50%;
+        background: var(--bg);
+        box-shadow: 2px 2px 4px var(--sh-dark), -2px -2px 4px var(--sh-light);
+        justify-self: center;
+    }
+    .tl-dot.on {
+        background: var(--role-a);
+        box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--role-a);
+    }
+    .tl-line { height: 2px; background: var(--sh-dark); }
+    .tl-line.on { background: linear-gradient(90deg, var(--role-a), var(--role-b)); }
+    .tl-labels { display: grid; grid-template-columns: auto 1fr auto 1fr auto 1fr auto 1fr auto; }
+    .tl-lbl { font-size: 0.5rem; font-weight: 600; color: var(--text-muted); text-align: center; padding: 0 1px; justify-self: center; }
+    .tl-lbl.on { color: var(--role-text); font-weight: 800; }
+    .tl-sp {}
+
+    /* Progress */
+    .doc-prog-row { display: flex; align-items: center; gap: 0.55rem; font-size: 0.67rem; color: var(--text-muted); }
+    .doc-prog-bar { flex: 1; }
+
+    /* Actions footer */
+    .doc-actions {
+        display: flex; gap: 0.4rem; flex-wrap: wrap;
+        padding-top: 0.6rem;
+        border-top: 1px solid rgba(185,192,207,0.3);
+    }
+    .doc-btn {
+        font-size: 0.7rem; font-weight: 700; padding: 0.32rem 0.75rem;
+        border-radius: 9px; text-decoration: none; color: var(--text-dim);
+        transition: all 0.18s;
+        box-shadow: 3px 3px 5px var(--sh-dark), -3px -3px 5px var(--sh-light);
+    }
+    .doc-btn.primary { color: var(--role-text); }
+    .doc-btn:hover { transform: translateY(-1px); }
+
+    /* Translator language rows */
+    .lang-translate-card {
+        border-radius: 11px; padding: 0.65rem 0.85rem;
+        display: flex; align-items: center; gap: 0.6rem;
+        box-shadow: inset 3px 3px 5px var(--sh-dark), inset -3px -3px 5px var(--sh-light);
+    }
+    .lang-code {
+        font-size: 0.6rem; font-weight: 800; text-transform: uppercase;
+        letter-spacing: 0.5px; color: var(--role-text);
+        padding: 0.2rem 0.5rem; border-radius: 6px; flex-shrink: 0;
+        box-shadow: 2px 2px 3px var(--sh-dark), -2px -2px 3px var(--sh-light);
+    }
+    .lang-prog-mini { flex: 1; }
+    .lang-prog-nums { font-size: 0.62rem; color: var(--text-muted); margin-bottom: 0.18rem; }
+    .lang-bar  { height: 4px; border-radius: 99px; overflow: hidden; box-shadow: inset 1px 1px 2px var(--sh-dark); }
+    .lang-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--role-a), var(--role-b)); }
+    .badge-rejected { font-size: 0.6rem; font-weight: 700; color: #c0556a; padding: 0.15rem 0.4rem; border-radius: 6px; flex-shrink: 0; box-shadow: inset 2px 2px 3px var(--sh-dark), inset -2px -2px 3px var(--sh-light); }
+    .btn-translate { padding: 0.3rem 0.65rem; border-radius: 9px; border: none; color: var(--role-text); font-size: 0.7rem; font-weight: 700; text-decoration: none; flex-shrink: 0; transition: all 0.18s; box-shadow: 3px 3px 5px var(--sh-dark), -3px -3px 5px var(--sh-light); }
+    .btn-translate:hover { transform: translateY(-1px); }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 4rem 2rem; color: var(--text-muted); border-radius: 18px; box-shadow: 7px 7px 14px var(--sh-dark), -7px -7px 14px var(--sh-light); }
+    .empty-state h3 { font-size: 1rem; font-weight: 600; color: var(--text-dim); margin: 0.75rem 0 0.5rem; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="fade-up">
+
+    {% for msg in app.flashes('success') %}
+        <div class="flash-success">✓ {{ msg }}</div>
+    {% endfor %}
+
+    <div class="page-hero">
+        <h1>
+            {% if is_granted('ROLE_ADMIN') %}Tous les <span class="grad">projets</span>
+            {% elseif is_granted('ROLE_PROJECT_MANAGER') %}Mes <span class="grad">projets</span>
+            {% else %}Projets <span class="grad">disponibles</span>{% endif %}
+        </h1>
+        <p>{{ projects|length }} projet(s) sur la plateforme.</p>
+    </div>
+
+    {% if projects is empty %}
+        <div class="empty-state">
+            <div style="font-size:3rem;opacity:0.35;">📁</div>
+            <h3>Aucun projet</h3>
+            <p style="margin-bottom:1rem;">{% if is_granted('ROLE_PROJECT_MANAGER') %}Créez votre premier projet.{% else %}Aucun projet disponible pour l'instant.{% endif %}</p>
+            {% if is_granted('ROLE_PROJECT_MANAGER') %}
+                <a href="{{ path('app_project_new') }}" class="btn btn-primary">＋ Créer un projet</a>
+            {% endif %}
+        </div>
+
+    {% else %}
+        <div class="doc-grid">
+        {% for project in projects %}
+
+            {% set allTrans     = project.translations %}
+            {% set totalStr     = allTrans|length %}
+            {% set approvedStr  = allTrans|filter(t => t.status == 'approved')|length %}
+            {% set submittedStr = allTrans|filter(t => t.status == 'submitted')|length %}
+            {% set pct          = totalStr > 0 ? (approvedStr / totalStr * 100)|round : 0 %}
+
+            {# Timeline stage (0–4) #}
+            {% set stage = 0 %}
+            {% if project.translators|length > 0 %}{% set stage = 1 %}{% endif %}
+            {% if totalStr > 0 %}{% set stage = 2 %}{% endif %}
+            {% if submittedStr > 0 or approvedStr > 0 %}{% set stage = 3 %}{% endif %}
+            {% if totalStr > 0 and approvedStr == totalStr %}{% set stage = 4 %}{% endif %}
+
+            {# ── VUE CHEF DE PROJET / ADMIN ── #}
+            {% if is_granted('ROLE_PROJECT_MANAGER') %}
+
+            <div class="doc-card">
+                <div class="doc-head">
+                    <div class="doc-paper">📄</div>
+                    <div class="doc-info">
+                        <div class="doc-name">{{ project.name }}</div>
+                        <div class="doc-langs">
+                            {% if project.sourceLanguage %}
+                                <span class="chip-src">{{ project.sourceLanguage.code|upper }}</span>
+                                <span class="chip-arrow">→</span>
+                            {% endif %}
+                            {% for lang in project.targetLanguages %}
+                                <span class="chip-tgt">{{ lang.code }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <span class="doc-pct {% if pct == 100 %}pct-done{% elseif pct >= 50 %}pct-mid{% else %}pct-low{% endif %}">{{ pct }}%</span>
+                </div>
+
+                <div class="doc-meta">
+                    <span class="mc">👥 {{ project.translators|length }}</span>
+                    <span class="mc">📝 {{ totalStr }} chaîne(s)</span>
+                    {% if submittedStr > 0 %}<span class="mc warn">⏳ {{ submittedStr }} à réviser</span>
+                    {% elseif pct == 100 %}<span class="mc ok">✓ Terminé</span>{% endif %}
+                </div>
+
+                {% set steps = ['Créé', 'Assigné', 'En cours', 'Révision', 'Terminé'] %}
+                <div class="tl-wrap">
+                    <div class="tl-dots">
+                        {% for step in steps %}
+                            <div class="tl-dot {% if loop.index0 <= stage %}on{% endif %}"></div>
+                            {% if not loop.last %}<div class="tl-line {% if loop.index0 < stage %}on{% endif %}"></div>{% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="tl-labels">
+                        {% for step in steps %}
+                            <div class="tl-lbl {% if loop.index0 <= stage %}on{% endif %}">{{ step }}</div>
+                            {% if not loop.last %}<div class="tl-sp"></div>{% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="doc-prog-row">
+                    <span style="white-space:nowrap;">{{ approvedStr }}/{{ totalStr }}</span>
+                    <div class="doc-prog-bar">
+                        <div class="progress-wrap" style="height:5px;">
+                            <div class="progress-bar" style="width:{{ pct }}%"></div>
+                        </div>
+                    </div>
+                    <span style="white-space:nowrap;font-weight:700;color:var(--role-text);">{{ pct }}%</span>
+                </div>
+
+                <div class="doc-actions">
+                    <a href="{{ path('app_project_show', {id: project.id}) }}" class="doc-btn">Détails</a>
+                    {% if is_granted('ROLE_ADMIN') or project.owner == app.user %}
+                        <a href="{{ path('app_project_import', {id: project.id}) }}" class="doc-btn">Importer</a>
+                        {% if submittedStr > 0 %}
+                            <a href="{{ path('app_project_review', {id: project.id}) }}" class="doc-btn primary">Réviser ({{ submittedStr }}) →</a>
+                        {% else %}
+                            <a href="{{ path('app_project_review', {id: project.id}) }}" class="doc-btn">Révision</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            {# ── VUE TRADUCTEUR ── #}
+            {% else %}
+
+            <div class="doc-card">
+                <div class="doc-head">
+                    <div class="doc-paper">📄</div>
+                    <div class="doc-info">
+                        <div class="doc-name">{{ project.name }}</div>
+                        <div class="doc-langs">
+                            {% if project.sourceLanguage %}
+                                <span class="chip-src">{{ project.sourceLanguage.code|upper }}</span>
+                                <span class="chip-arrow">→</span>
+                            {% endif %}
+                            {% for lang in project.targetLanguages %}
+                                <span class="chip-tgt">{{ lang.code }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <span class="doc-pct {% if pct == 100 %}pct-done{% elseif pct >= 50 %}pct-mid{% else %}pct-low{% endif %}">{{ pct }}%</span>
+                </div>
+
+                <div class="owner-row">
+                    <span style="opacity:0.5;">⚙</span>
+                    <span>{{ project.owner.username ?? project.owner.email|split('@')|first }}</span>
+                </div>
+
+                {% set steps = ['Créé', 'Assigné', 'En cours', 'Révision', 'Terminé'] %}
+                <div class="tl-wrap">
+                    <div class="tl-dots">
+                        {% for step in steps %}
+                            <div class="tl-dot {% if loop.index0 <= stage %}on{% endif %}"></div>
+                            {% if not loop.last %}<div class="tl-line {% if loop.index0 < stage %}on{% endif %}"></div>{% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="tl-labels">
+                        {% for step in steps %}
+                            <div class="tl-lbl {% if loop.index0 <= stage %}on{% endif %}">{{ step }}</div>
+                            {% if not loop.last %}<div class="tl-sp"></div>{% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div style="display:flex;flex-direction:column;gap:0.45rem;">
+                    {% if project.targetLanguages is empty %}
+                        <div style="font-size:0.8rem;color:var(--text-muted);">Aucune langue configurée.</div>
+                    {% else %}
+                        {% for lang in project.targetLanguages %}
+                            {% set langTrans    = allTrans|filter(t => t.language.id == lang.id) %}
+                            {% set langTotal    = langTrans|length %}
+                            {% set langApproved = langTrans|filter(t => t.status == 'approved')|length %}
+                            {% set langRejected = langTrans|filter(t => t.status == 'rejected')|length %}
+                            {% set langPct      = langTotal > 0 ? (langApproved / langTotal * 100)|round : 0 %}
+                            <div class="lang-translate-card">
+                                <span class="lang-code">{{ lang.code }}</span>
+                                <div class="lang-prog-mini">
+                                    <div class="lang-prog-nums">{{ lang.name }} · {{ langApproved }}/{{ langTotal }}</div>
+                                    <div class="lang-bar"><div class="lang-fill" style="width:{{ langPct }}%"></div></div>
+                                </div>
+                                {% if langRejected > 0 %}<span class="badge-rejected">{{ langRejected }} rejeté(s)</span>{% endif %}
+                                {% if langTotal > 0 %}
+                                    <a href="{{ path('app_project_translate', {id: project.id, languageId: lang.id}) }}" class="btn-translate">Traduire →</a>
+                                {% else %}
+                                    <span class="btn-translate" style="opacity:0.45;cursor:default;">En attente</span>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <div class="doc-actions" style="margin-top:0.75rem;">
+                    <a href="{{ path('app_project_show', {id: project.id}) }}" class="doc-btn">Détails</a>
+                </div>
+
+            </div>
+            {% endif %}
+
+        {% endfor %}
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

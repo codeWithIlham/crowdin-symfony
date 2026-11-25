@@ -1,0 +1,219 @@
+{% extends 'base.html.twig' %}
+{% block title %}À propos — Crowdin{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .about-wrap { max-width: 1000px; margin: 0 auto; padding: 5rem 2rem 6rem; }
+
+    .about-header { text-align: center; margin-bottom: 4rem; }
+    .about-header h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 900; letter-spacing: -2px; margin-bottom: 0.75rem; color: var(--text); }
+    .about-header p { color: var(--text-muted); font-size: 1rem; }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.25rem;
+        margin-bottom: 5rem;
+    }
+
+    @media (max-width: 600px) { .stats-grid { grid-template-columns: 1fr 1fr; } }
+
+    .stat-card {
+        padding: 2rem 1.5rem;
+        border-radius: 20px;
+        text-align: center;
+        box-shadow: 8px 8px 16px var(--sh-dark), -8px -8px 16px var(--sh-light);
+    }
+
+    .stat-num {
+        font-size: 2.8rem;
+        font-weight: 900;
+        letter-spacing: -3px;
+        color: var(--accent-text);
+        line-height: 1;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .stat-label { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+    .guide-title { font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 900; letter-spacing: -1.5px; text-align: center; margin-bottom: 0.75rem; color: var(--text); }
+    .guide-sub { text-align: center; color: var(--text-muted); margin-bottom: 3rem; }
+
+    .steps { display: flex; flex-direction: column; gap: 1.5rem; }
+
+    .step {
+        display: grid;
+        grid-template-columns: 60px 1fr;
+        gap: 1.5rem;
+        align-items: start;
+        padding: 1.75rem;
+        border-radius: 20px;
+        box-shadow: 7px 7px 14px var(--sh-dark), -7px -7px 14px var(--sh-light);
+        transition: box-shadow 0.22s;
+    }
+
+    .step:hover { box-shadow: 9px 9px 18px var(--sh-dark), -9px -9px 18px var(--sh-light); }
+
+    .step-num {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        font-weight: 900;
+        color: var(--accent-text);
+        box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+        flex-shrink: 0;
+    }
+
+    .step-role { font-size: 0.65rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent-text); margin-bottom: 0.4rem; }
+    .step-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text); }
+    .step-desc { font-size: 0.88rem; color: var(--text-muted); line-height: 1.7; }
+
+    .step-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.85rem; }
+
+    .step-tag {
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 0.25rem 0.65rem;
+        border-radius: 99px;
+        color: var(--text-muted);
+        box-shadow: inset 2px 2px 4px var(--sh-dark), inset -2px -2px 4px var(--sh-light);
+    }
+
+    .connector {
+        width: 2px;
+        height: 24px;
+        margin: 0 auto;
+        background: var(--sh-dark);
+        border-radius: 1px;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="about-wrap">
+
+    <div class="about-header">
+        <h1>La plateforme <span style="color:var(--accent-text);">en chiffres</span></h1>
+        <p>Statistiques en temps réel tirées de la base de données.</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-num">{{ totalProjects }}</span>
+            <div class="stat-label">Projets</div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-num">{{ totalLanguages }}</span>
+            <div class="stat-label">Langues</div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-num">{{ totalUsers }}</span>
+            <div class="stat-label">Utilisateurs</div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-num">{{ totalTranslations }}</span>
+            <div class="stat-label">Chaînes totales</div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-num">{{ approvedCount }}</span>
+            <div class="stat-label">Approuvées</div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-num" style="font-size:2.2rem;">{{ approvalRate }}%</span>
+            <div class="stat-label">Taux d'approbation</div>
+        </div>
+    </div>
+
+    <h2 class="guide-title">Comment ça <span style="color:var(--accent-text);">fonctionne</span> ?</h2>
+    <p class="guide-sub">Le workflow complet en 5 étapes.</p>
+
+    <div class="steps">
+
+        <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+                <div class="step-role">Admin</div>
+                <div class="step-title">Créer un projet</div>
+                <div class="step-desc">L'admin crée un projet, définit les langues cibles. Les traducteurs reçoivent une notification automatique.</div>
+                <div class="step-actions">
+                    <span class="step-tag">Nouveau projet</span>
+                    <span class="step-tag">Langues cibles</span>
+                    <span class="step-tag">Notification auto</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="connector"></div>
+
+        <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+                <div class="step-role">Admin</div>
+                <div class="step-title">Importer le contenu</div>
+                <div class="step-desc">Coller du texte ligne par ligne ou uploader un fichier .txt. Chaque ligne devient une chaîne à traduire dans toutes les langues.</div>
+                <div class="step-actions">
+                    <span class="step-tag">Texte libre</span>
+                    <span class="step-tag">Upload fichier</span>
+                    <span class="step-tag">Notification traducteurs</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="connector"></div>
+
+        <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+                <div class="step-role">Traducteur</div>
+                <div class="step-title">Traduire dans l'éditeur focus</div>
+                <div class="step-desc">Une chaîne à la fois, sans distraction. Sauvegarder en brouillon ou soumettre pour révision. Ctrl+Enter pour aller vite.</div>
+                <div class="step-actions">
+                    <span class="step-tag">Éditeur focus</span>
+                    <span class="step-tag">Brouillon</span>
+                    <span class="step-tag">Soumettre</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="connector"></div>
+
+        <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-content">
+                <div class="step-role">Admin</div>
+                <div class="step-title">Réviser dans le Kanban</div>
+                <div class="step-desc">Approuver ou rejeter chaque traduction avec un commentaire. Le traducteur est notifié immédiatement à chaque décision.</div>
+                <div class="step-actions">
+                    <span class="step-tag">Kanban 3 colonnes</span>
+                    <span class="step-tag">Approuver / Rejeter</span>
+                    <span class="step-tag">Commentaire</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="connector"></div>
+
+        <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-content">
+                <div class="step-role">Traducteur</div>
+                <div class="step-title">Corriger et resoumettre</div>
+                <div class="step-desc">Les traductions rejetées apparaissent en priorité avec le commentaire de l'admin. Le traducteur corrige et resoumet — impossible de resoumettre sans modification.</div>
+                <div class="step-actions">
+                    <span class="step-tag">Priorité rejetées</span>
+                    <span class="step-tag">Commentaire visible</span>
+                    <span class="step-tag">Anti-doublon</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

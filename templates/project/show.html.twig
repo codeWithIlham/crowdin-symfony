@@ -1,0 +1,221 @@
+{% extends 'base_app.html.twig' %}
+{% block title %}{{ project.name }} — Crowdin{% endblock %}
+{% block page_title %}{{ project.name }}{% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block topbar_actions %}
+    <a href="{{ path('app_projects') }}" class="btn btn-outline">← Projets</a>
+    {% if is_granted('ROLE_ADMIN') or (is_granted('ROLE_PROJECT_MANAGER') and project.owner == app.user) %}
+        <a href="{{ path('app_project_source_new', {id: project.id}) }}" class="btn btn-primary" style="font-size:0.82rem;">＋ Source</a>
+        <a href="{{ path('app_project_import', {id: project.id}) }}" class="btn btn-outline">↑ Bulk</a>
+        <a href="{{ path('app_project_review', {id: project.id}) }}" class="btn btn-primary" style="font-size:0.82rem;">Tableau de révision</a>
+        <a href="{{ path('app_project_export', {id: project.id, format: 'json'}) }}" class="btn btn-outline">↓ JSON</a>
+        <a href="{{ path('app_project_export', {id: project.id, format: 'csv'}) }}" class="btn btn-outline">↓ CSV</a>
+        <a href="{{ path('app_project_edit', {id: project.id}) }}" class="btn btn-outline">Modifier</a>
+    {% endif %}
+{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .two-col { display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; align-items: start; }
+    @media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
+
+    .sec-label {
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+        opacity: 0.7;
+    }
+
+    .lang-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.9rem 1rem;
+        border-radius: 13px;
+        margin-bottom: 0.6rem;
+        transition: box-shadow 0.18s;
+        box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+    }
+
+    .lang-badge {
+        font-size: 0.65rem;
+        font-weight: 800;
+        padding: 0.22rem 0.55rem;
+        border-radius: 7px;
+        color: var(--role-text);
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        flex-shrink: 0;
+        box-shadow: 2px 2px 4px var(--sh-dark), -2px -2px 4px var(--sh-light);
+    }
+
+    .lang-name { font-size: 0.88rem; font-weight: 600; }
+    .lang-sub  { font-size: 0.72rem; color: var(--text-muted); margin-top: 1px; }
+
+    .lang-bar { width: 80px; height: 5px; border-radius: 99px; overflow: hidden; margin-top: 0.3rem; box-shadow: inset 1px 1px 2px var(--sh-dark); }
+    .lang-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--role-a), var(--role-b)); }
+
+    .string-list-simple { list-style: none; padding: 0; margin: 0; }
+
+    .string-list-simple li {
+        padding: 0.6rem 0;
+        border-bottom: 1px solid var(--sh-dark);
+        font-size: 0.9rem;
+        color: var(--text-dim);
+        line-height: 1.5;
+        display: flex;
+        align-items: baseline;
+        gap: 0.75rem;
+    }
+
+    .string-list-simple li:last-child { border-bottom: none; }
+
+    .string-num { font-size: 0.7rem; color: var(--text-muted); opacity: 0.7; flex-shrink: 0; min-width: 1.5rem; }
+    .string-key-tiny { font-size: 0.68rem; font-family: monospace; color: var(--role-text); opacity: 0.6; flex-shrink: 0; }
+
+    .add-form .form-control {
+        margin-bottom: 0.6rem;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="fade-up">
+
+    {% for msg in app.flashes('success') %}
+        <div class="flash-success">✓ {{ msg }}</div>
+    {% endfor %}
+
+    <div class="two-col">
+
+        {# ── COLONNE PRINCIPALE ── #}
+        <div>
+
+            {# Description #}
+            <div class="glass" style="padding:1.5rem;margin-bottom:1.25rem;">
+                <div class="sec-label">Description</div>
+                <p style="color:var(--text-muted);line-height:1.7;font-size:0.9rem;">
+                    {{ project.description ?? 'Aucune description.' }}
+                </p>
+                <div style="display:flex;align-items:center;gap:1rem;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--sh-dark);">
+                    <span style="font-size:0.75rem;color:var(--text-muted);">
+                        Créé le {{ project.createdAt|date('d/m/Y') }}
+                    </span>
+                    <span style="width:3px;height:3px;border-radius:50%;background:var(--sh-dark);"></span>
+                    <span style="font-size:0.75rem;color:var(--text-muted);">
+                        Par {{ project.owner.email|split('@')|first }}
+                    </span>
+                    <span style="width:3px;height:3px;border-radius:50%;background:var(--sh-dark);"></span>
+                    <span style="font-size:0.75rem;color:var(--text-muted);">
+                        {{ project.targetLanguages|length }} langue(s)
+                    </span>
+                </div>
+            </div>
+
+            {# Chaînes source #}
+            <div class="glass" style="padding:1.5rem;margin-bottom:1.25rem;">
+                <div class="sec-label">Chaînes source
+                    {% set keyCount = [] %}
+                    {% for t in project.translations %}{% if t.sourceKey not in keyCount %}{% set keyCount = keyCount|merge([t.sourceKey]) %}{% endif %}{% endfor %}
+                    ({{ keyCount|length }})
+                </div>
+
+                <ul class="string-list-simple">
+                {% set displayedKeys = [] %}
+                {% set n = 1 %}
+                {% for t in project.translations %}
+                    {% if t.sourceKey not in displayedKeys %}
+                        {% set displayedKeys = displayedKeys|merge([t.sourceKey]) %}
+                        <li>
+                            <span class="string-num">{{ n }}</span>
+                            <span style="flex:1;">{{ t.sourceText }}</span>
+                            {% if is_granted('ROLE_ADMIN') or (is_granted('ROLE_PROJECT_MANAGER') and project.owner == app.user) %}<span class="string-key-tiny">{{ t.sourceKey }}</span>{% endif %}
+                        </li>
+                        {% set n = n + 1 %}
+                    {% endif %}
+                {% endfor %}
+                </ul>
+
+                {% if project.translations is empty %}
+                    <p style="color:var(--text-muted);font-size:0.88rem;text-align:center;padding:1.5rem 0;">
+                        {% if is_granted('ROLE_ADMIN') or (is_granted('ROLE_PROJECT_MANAGER') and project.owner == app.user) %}Aucune chaîne. Ajoutez-en ci-dessous.{% else %}Aucune chaîne pour l'instant.{% endif %}
+                    </p>
+                {% endif %}
+            </div>
+
+            {# Bouton importer (chef de projet propriétaire) #}
+            {% if (is_granted('ROLE_ADMIN') or (is_granted('ROLE_PROJECT_MANAGER') and project.owner == app.user)) and project.targetLanguages is not empty %}
+            <div class="glass" style="padding:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;">
+                <div>
+                    <div style="font-size:0.85rem;font-weight:600;">Contenu à traduire</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem;">Importez des chaînes en bulk ou via JSON</div>
+                </div>
+                <a href="{{ path('app_project_import', {id: project.id}) }}" class="btn btn-primary" style="flex-shrink:0;font-size:0.82rem;">＋ Importer</a>
+            </div>
+            {% endif %}
+
+        </div>
+
+        {# ── COLONNE LANGUES ── #}
+        <div>
+            {% if project.sourceLanguage %}
+            <div class="glass" style="padding:1.2rem 1.4rem;margin-bottom:1rem;display:flex;align-items:center;gap:0.75rem;">
+                <span style="font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);">Langue source</span>
+                <span class="lang-badge" style="margin-left:auto;">{{ project.sourceLanguage.code }}</span>
+                <span style="font-size:0.85rem;font-weight:600;">{{ project.sourceLanguage.name }}</span>
+            </div>
+            {% endif %}
+
+            <div class="glass" style="padding:1.4rem;margin-bottom:1.25rem;">
+                <div class="sec-label">Langues cibles ({{ project.targetLanguages|length }})</div>
+
+                {% if project.targetLanguages is empty %}
+                    <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:0.75rem;">Aucune langue assignée.</p>
+                    {% if is_granted('ROLE_ADMIN') or (is_granted('ROLE_PROJECT_MANAGER') and project.owner == app.user) %}
+                        <a href="{{ path('app_project_edit', {id: project.id}) }}" class="btn btn-outline" style="width:100%;justify-content:center;">＋ Ajouter des langues</a>
+                    {% endif %}
+                {% else %}
+                    {% for lang in project.targetLanguages %}
+                        {% set langTranslations = project.translations|filter(t => t.language.id == lang.id) %}
+                        {% set done  = langTranslations|filter(t => t.translatedText is not null and t.translatedText != '')|length %}
+                        {% set total = langTranslations|length %}
+                        {% set pct   = total > 0 ? ((done / total) * 100)|round : 0 %}
+                        <div class="lang-row">
+                            <span class="lang-badge">{{ lang.code }}</span>
+                            <div style="flex:1;min-width:0;">
+                                <div class="lang-name">{{ lang.name }}</div>
+                                <div class="lang-sub">{{ done }}/{{ total }} traduit</div>
+                                <div class="lang-bar"><div class="lang-fill" style="width:{{ pct }}%"></div></div>
+                            </div>
+                            {% if total > 0 %}
+                                <a href="{{ path('app_project_translate', {id: project.id, languageId: lang.id}) }}" class="btn btn-primary" style="font-size:0.75rem;padding:0.35rem 0.7rem;flex-shrink:0;">
+                                    ✎
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            {# Zone danger - propriétaire du projet #}
+            {% if is_granted('ROLE_ADMIN') or (is_granted('ROLE_PROJECT_MANAGER') and project.owner == app.user) %}
+            <div class="glass" style="padding:1.25rem;">
+                <div class="sec-label" style="color:#c0556a;">Zone de danger</div>
+                <form method="POST" action="{{ path('app_project_delete', {id: project.id}) }}" onsubmit="return confirm('Supprimer ce projet définitivement ?')">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete'~project.id) }}">
+                    <button type="submit" class="btn btn-danger" style="width:100%;justify-content:center;">
+                        Supprimer le projet
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

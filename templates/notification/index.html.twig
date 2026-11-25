@@ -1,0 +1,202 @@
+{% extends 'base_app.html.twig' %}
+{% block title %}Notifications{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .notif-list { max-width: 680px; display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .notif-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .notif-item {
+        flex: 1;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1.1rem 1.3rem;
+        border-radius: 16px;
+        box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light);
+        text-decoration: none;
+        color: var(--text);
+        transition: box-shadow 0.18s;
+    }
+
+    .notif-item:hover { box-shadow: 7px 7px 14px var(--sh-dark), -7px -7px 14px var(--sh-light); }
+
+    .notif-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        margin-top: 0.4rem;
+    }
+
+    .dot-unread { background: var(--role-a); }
+    .dot-read   { background: var(--sh-dark); }
+
+    .notif-msg { font-size: 0.88rem; line-height: 1.5; flex: 1; }
+    .notif-time { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+    .btn-delete {
+        width: 34px;
+        height: 34px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        color: #c0556a;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 4px 4px 8px var(--sh-dark), -4px -4px 8px var(--sh-light);
+        transition: all 0.18s;
+        background: var(--bg);
+    }
+
+    .btn-delete:hover { box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light); transform: scale(1.05); }
+    .btn-delete:active { box-shadow: inset 2px 2px 4px var(--sh-dark), inset -2px -2px 4px var(--sh-light); }
+
+    .empty-notif { text-align: center; padding: 4rem 2rem; color: var(--text-muted); }
+
+    /* Modal de confirmation */
+    .confirm-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(185, 192, 207, 0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .confirm-overlay.open { display: flex; }
+
+    .confirm-box {
+        background: var(--bg);
+        border-radius: 20px;
+        padding: 2rem;
+        max-width: 360px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 12px 12px 24px var(--sh-dark), -12px -12px 24px var(--sh-light);
+    }
+
+    .confirm-icon { font-size: 2rem; margin-bottom: 1rem; }
+    .confirm-title { font-size: 1rem; font-weight: 800; color: var(--text); margin-bottom: 0.5rem; }
+    .confirm-sub { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.6; }
+
+    .confirm-actions { display: flex; gap: 0.75rem; justify-content: center; }
+
+    .btn-confirm-yes {
+        padding: 0.65rem 1.5rem;
+        border: none;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+        color: #c0556a;
+        box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light);
+        transition: all 0.18s;
+        background: var(--bg);
+    }
+
+    .btn-confirm-cancel {
+        padding: 0.65rem 1.5rem;
+        border: none;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+        color: var(--text-muted);
+        box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light);
+        transition: all 0.18s;
+        background: var(--bg);
+    }
+
+    .btn-confirm-yes:hover, .btn-confirm-cancel:hover { transform: translateY(-1px); }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="fade-up">
+
+    {% if notifications is empty %}
+        <div class="glass empty-notif">
+            <div style="font-size:3rem;opacity:0.4;margin-bottom:1rem;">🔔</div>
+            <p>Aucune notification pour l'instant.</p>
+        </div>
+    {% else %}
+        <div class="notif-list">
+            {% for notif in notifications %}
+            <div class="notif-row">
+                {% if notif.link %}
+                    <a class="notif-item" href="{{ notif.link }}">
+                {% else %}
+                    <div class="notif-item">
+                {% endif %}
+                    <span class="notif-dot {% if not notif.isRead %}dot-unread{% else %}dot-read{% endif %}"></span>
+                    <div style="flex:1;">
+                        <div class="notif-msg">{{ notif.message }}</div>
+                        <div class="notif-time">{{ notif.createdAt|date('d/m/Y à H:i') }}</div>
+                    </div>
+                {% if notif.link %}</a>{% else %}</div>{% endif %}
+
+                <button class="btn-delete" onclick="confirmDelete({{ notif.id }}, '{{ notif.message|slice(0,40)|replace({"'": "\\'"}) }}...')" title="Supprimer">✕</button>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+</div>
+
+{# ── MODAL DE CONFIRMATION ── #}
+<div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-box">
+        <div class="confirm-icon">🗑️</div>
+        <div class="confirm-title">Supprimer cette notification ?</div>
+        <div class="confirm-sub" id="confirm-msg"></div>
+        <div class="confirm-actions">
+            <button class="btn-confirm-yes" id="confirm-yes">Supprimer</button>
+            <button class="btn-confirm-cancel" onclick="closeConfirm()">Annuler</button>
+        </div>
+    </div>
+</div>
+
+<form method="POST" id="delete-form" style="display:none;">
+    <input type="hidden" name="_method" value="DELETE">
+</form>
+
+<script>
+let pendingId = null;
+
+function confirmDelete(id, msg) {
+    pendingId = id;
+    document.getElementById('confirm-msg').textContent = msg;
+    document.getElementById('confirm-overlay').classList.add('open');
+}
+
+function closeConfirm() {
+    pendingId = null;
+    document.getElementById('confirm-overlay').classList.remove('open');
+}
+
+document.getElementById('confirm-yes').addEventListener('click', function() {
+    if (!pendingId) return;
+    const form = document.getElementById('delete-form');
+    form.action = '/notifications/' + pendingId + '/delete';
+    form.style.display = 'block';
+    form.submit();
+});
+
+document.getElementById('confirm-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeConfirm();
+});
+</script>
+{% endblock %}

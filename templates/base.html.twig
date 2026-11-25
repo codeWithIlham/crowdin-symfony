@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Crowdin{% endblock %}</title>
+    <script>if(localStorage.getItem('theme')==='dark')document.documentElement.classList.add('dark');</script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { overflow-x: hidden; }
+
+        :root {
+            --bg: #e7eaf0;
+            --text: #30374a;
+            --text-muted: #8890a3;
+            --text-dim: #5b6478;
+            --sh-light: #ffffff;
+            --sh-dark: #b9c0cf;
+            --accent: #7c6ae8;
+            --accent-text: #6452d6;
+            --radius: 16px;
+        }
+        :root.dark {
+            --bg: #1e2130;
+            --text: #dde3f0;
+            --text-muted: #6b7594;
+            --text-dim: #9ba3bb;
+            --sh-light: #262a3d;
+            --sh-dark: #13151e;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── Lettres flottantes ── */
+        #floaters {
+            position: fixed; inset: 0; z-index: 0;
+            pointer-events: none; overflow: hidden;
+        }
+        .fl {
+            position: absolute; font-weight: 800;
+            color: rgba(80, 70, 140, 0.065);
+            user-select: none; pointer-events: none;
+            animation: fl linear infinite;
+        }
+        @keyframes fl {
+            0%   { transform: translateY(105vh); opacity: 0; }
+            6%   { opacity: 1; }
+            94%  { opacity: 1; }
+            100% { transform: translateY(-5vh); opacity: 0; }
+        }
+
+        /* ── NAV ── */
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 200;
+            display: flex;
+            justify-content: center;
+            padding: 1rem;
+            pointer-events: none;
+        }
+
+        .nav-pill {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            background: var(--bg);
+            border-radius: 99px;
+            padding: 5px 6px;
+            pointer-events: all;
+            box-shadow: 6px 6px 12px var(--sh-dark), -6px -6px 12px var(--sh-light);
+            max-width: calc(100vw - 100px);
+            overflow: hidden;
+        }
+
+        .nav-brand {
+            font-weight: 800;
+            font-size: 0.95rem;
+            letter-spacing: -0.3px;
+            color: var(--accent-text);
+            text-decoration: none;
+            padding: 0.35rem 1.1rem;
+            margin-right: 4px;
+        }
+
+        .nav-sep {
+            width: 1px;
+            height: 18px;
+            background: var(--sh-dark);
+            margin: 0 4px;
+            flex-shrink: 0;
+        }
+
+        .nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.865rem;
+            font-weight: 500;
+            padding: 0.4rem 0.85rem;
+            border-radius: 99px;
+            transition: all 0.18s;
+            white-space: nowrap;
+        }
+
+        .nav-link:hover { color: var(--text); }
+
+        .nav-link-active {
+            color: var(--accent-text);
+            font-weight: 700;
+            box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+        }
+
+        .btn-nav {
+            background: var(--bg);
+            color: var(--accent-text);
+            font-size: 0.865rem;
+            font-weight: 700;
+            padding: 0.42rem 1.1rem;
+            border-radius: 99px;
+            text-decoration: none;
+            transition: all 0.18s;
+            box-shadow: 4px 4px 8px var(--sh-dark), -4px -4px 8px var(--sh-light);
+        }
+
+        .btn-nav:hover { transform: translateY(-1px); }
+
+        /* ── MAIN ── */
+        main { width: 100%; padding-top: 70px; }
+
+        /* ── BUTTONS ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.8rem 2rem;
+            border-radius: 99px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            border: none;
+            text-decoration: none;
+            transition: all 0.22s;
+            background: var(--bg);
+            color: var(--text);
+            box-shadow: 6px 6px 12px var(--sh-dark), -6px -6px 12px var(--sh-light);
+        }
+
+        .btn:hover { transform: translateY(-2px); }
+        .btn:active { box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light); transform: none; }
+
+        .btn-primary { color: var(--accent-text); }
+        .btn-outline  { color: var(--text-dim); }
+
+        /* ── GLASS / CARD ── */
+        .glass {
+            background: var(--bg);
+            border-radius: var(--radius);
+            box-shadow: 7px 7px 14px var(--sh-dark), -7px -7px 14px var(--sh-light);
+        }
+
+        /* ── FORM ── */
+        .form-group { margin-bottom: 1.25rem; }
+
+        .form-group label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 0.45rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.8rem 1.1rem;
+            background: var(--bg);
+            border: none;
+            border-radius: 13px;
+            color: var(--text);
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.2s;
+            outline: none;
+            box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+        }
+
+        .form-group input:focus {
+            box-shadow: inset 4px 4px 8px var(--sh-dark), inset -4px -4px 8px var(--sh-light), 0 0 0 2px var(--accent);
+        }
+
+        .form-group input::placeholder { color: var(--text-muted); opacity: 0.6; }
+
+        /* ── GRAD TEXT ── */
+        .grad { color: var(--accent-text); }
+
+        /* ── BADGE ── */
+        .badge {
+            display: inline-block;
+            padding: 0.28rem 0.85rem;
+            border-radius: 99px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--accent-text);
+            box-shadow: inset 2px 2px 4px var(--sh-dark), inset -2px -2px 4px var(--sh-light);
+        }
+
+        /* ── ALERTS ── */
+        .alert {
+            padding: 0.85rem 1.1rem;
+            border-radius: 12px;
+            margin-bottom: 1.25rem;
+            font-size: 0.88rem;
+            box-shadow: 4px 4px 8px var(--sh-dark), -4px -4px 8px var(--sh-light);
+        }
+
+        .alert-error   { color: #c0556a; }
+        .alert-success { color: #2f9e6e; }
+
+        /* ── ANIMATIONS ── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(28px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-up { animation: fadeUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+
+        /* ── DIVIDER ── */
+        .divider {
+            text-align: center;
+            margin: 1.25rem 0;
+            position: relative;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+        }
+
+        .divider::before, .divider::after {
+            content: '';
+            position: absolute;
+            top: 50%; width: 40%;
+            height: 1px;
+            background: var(--sh-dark);
+        }
+
+        .divider::before { left: 0; }
+        .divider::after  { right: 0; }
+
+        /* ── FOOTER ── */
+        footer {
+            text-align: center;
+            padding: 1.25rem 2rem;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            margin-top: 2rem;
+            letter-spacing: 0.3px;
+        }
+        footer .footer-names {
+            color: var(--accent-text);
+            font-weight: 700;
+        }
+
+        .nav-show-mobile { display: none !important; }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 768px) {
+            .nav-hide-mobile { display: none !important; }
+            .nav-show-mobile { display: flex !important; }
+            .nav-pill { gap: 1px; padding: 4px 5px; max-width: calc(100vw - 90px); }
+            .nav-link { padding: 0.38rem 0.6rem; font-size: 0.82rem; }
+            .btn-nav { padding: 0.38rem 0.8rem; font-size: 0.82rem; }
+            .nav-brand { padding: 0.35rem 0.7rem; font-size: 0.88rem; }
+            .nav-sep { display: none; }
+        }
+    </style>
+    {% block stylesheets %}{% endblock %}
+</head>
+<body>
+
+<div id="floaters" aria-hidden="true"></div>
+
+<nav>
+    <div class="nav-pill">
+        <a href="{{ path('app_home') }}" class="nav-brand"><svg width="17" height="14" viewBox="0 0 20 16" fill="none" style="vertical-align:middle;margin-right:6px"><path d="M1 4.5h14M11 1.5l4 3-4 3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 11.5H5M9 8.5l-4 3 4 3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Crowdin</a>
+
+        {% set route = app.request.get('_route') %}
+
+        <a href="{{ path('app_home') }}" class="nav-link nav-hide-mobile {% if route == 'app_home' %}nav-link-active{% endif %}">Accueil</a>
+        <a href="{{ path('app_about') }}" class="nav-link nav-hide-mobile {% if route == 'app_about' %}nav-link-active{% endif %}">À propos</a>
+        <a href="{{ path('app_contact') }}" class="nav-link nav-hide-mobile {% if route == 'app_contact' %}nav-link-active{% endif %}">Contact</a>
+
+        {% if app.user %}
+            <a href="{{ path('app_dashboard') }}" class="nav-link nav-hide-mobile">👤 {{ (app.user.username ?? app.user.email)|slice(0,14) }}{% if (app.user.username ?? app.user.email)|length > 14 %}…{% endif %}</a>
+            <a href="{{ path('app_dashboard') }}" class="nav-link nav-show-mobile">👤</a>
+            <a href="{{ path('app_logout') }}" class="nav-link nav-hide-mobile">Déconnexion</a>
+        {% else %}
+            <a href="{{ path('app_login') }}" class="nav-link {% if route == 'app_login' %}nav-link-active{% endif %}">Connexion</a>
+            <a href="{{ path('app_register') }}" class="btn-nav">S'inscrire →</a>
+        {% endif %}
+    </div>
+</nav>
+
+<button id="theme-toggle" onclick="toggleTheme()" title="Changer le thème" style="position:fixed;top:14px;right:18px;z-index:9999;border:none;background:none;padding:0;cursor:pointer;outline:none;">
+    <div style="position:relative;width:64px;height:30px;border-radius:99px;background:var(--bg);box-shadow:3px 3px 7px var(--sh-dark),-3px -3px 7px var(--sh-light);display:flex;align-items:center;padding:3px;">
+        <div id="theme-track" style="position:absolute;left:3px;width:28px;height:24px;border-radius:99px;background:#7c6ae8;transition:transform 0.3s cubic-bezier(.4,0,.2,1);"></div>
+        <div style="position:relative;z-index:1;width:50%;display:flex;align-items:center;justify-content:center;font-size:13px;">☀️</div>
+        <div style="position:relative;z-index:1;width:50%;display:flex;align-items:center;justify-content:center;font-size:13px;">🌙</div>
+    </div>
+</button>
+
+<main>
+    {% block body %}{% endblock %}
+</main>
+
+<footer>
+    &copy; 2026 Crowdin &mdash; <span class="footer-names">Ilham &middot; Paulin &middot; Dan</span>
+</footer>
+
+{% block javascripts %}{% endblock %}
+
+<script>
+(function () {
+    const s = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P',
+               'あ','い','う','え','お','か','き','く','け','こ','さ','し','す',
+               'ع','ب','ت','ث','ج','ح','خ','د','ر','ز','س','ش','ص',
+               '中','文','字','语','言','人','日','本','国','学','大','小','上',
+               '한','글','가','나','다','라','마','바','사','아','자','차','타',
+               'α','β','γ','δ','ε','ζ','η','θ','λ','μ','π','σ','Ω','Σ','Φ',
+               'ह','न','म','स','त','र','क','ग','ज','प','ब','य','व',
+               'А','Б','В','Г','Д','Е','Ж','З','И','К','Л','М','Н','П','Р'];
+    const c = document.getElementById('floaters');
+    if (!c) return;
+    function spawn() {
+        const el = document.createElement('span');
+        el.className = 'fl';
+        el.textContent = s[Math.floor(Math.random() * s.length)];
+        el.style.left = (Math.random() * 100) + 'vw';
+        const dur = 20 + Math.random() * 25;
+        el.style.animationDuration = dur + 's';
+        el.style.animationDelay = (Math.random() * -dur) + 's';
+        el.style.fontSize = (1.1 + Math.random() * 1.8) + 'rem';
+        c.appendChild(el);
+        setTimeout(() => el.remove(), (dur + 1) * 1000);
+    }
+    for (let i = 0; i < 35; i++) spawn();
+    setInterval(spawn, 1200);
+})();
+
+function applyDark(dark) {
+    document.documentElement.classList.toggle('dark', dark);
+    var track = document.getElementById('theme-track');
+    if (track) track.style.transform = dark ? 'translateX(31px)' : 'translateX(0)';
+}
+function toggleTheme() {
+    var isDark = document.documentElement.classList.contains('dark');
+    applyDark(!isDark);
+    localStorage.setItem('theme', !isDark ? 'dark' : 'light');
+}
+(function() {
+    var dark = localStorage.getItem('theme') === 'dark';
+    applyDark(dark);
+})();
+</script>
+</body>
+</html>

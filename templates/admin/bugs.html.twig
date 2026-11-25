@@ -1,0 +1,127 @@
+{% extends 'base_app.html.twig' %}
+{% block title %}Bugs signalés{% endblock %}
+{% block page_title %}Bugs signalés{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .bugs-wrap { max-width: 800px; }
+
+    .section-label {
+        font-size: 0.65rem;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+        margin-top: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    .count {
+        padding: 0.1rem 0.5rem;
+        border-radius: 99px;
+        font-size: 0.65rem;
+        color: var(--role-text);
+        box-shadow: inset 2px 2px 4px var(--sh-dark), inset -2px -2px 4px var(--sh-light);
+    }
+
+    .bug-card {
+        padding: 1.25rem 1.4rem;
+        border-radius: 16px;
+        margin-bottom: 0.75rem;
+        box-shadow: 6px 6px 12px var(--sh-dark), -6px -6px 12px var(--sh-light);
+    }
+
+    .bug-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.5rem; }
+    .bug-title { font-size: 0.95rem; font-weight: 700; color: var(--text); }
+    .bug-meta { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.4rem; }
+    .bug-page { font-size: 0.75rem; font-family: monospace; color: var(--role-text); margin-bottom: 0.5rem; }
+    .bug-desc { font-size: 0.85rem; color: var(--text-dim); line-height: 1.6; padding: 0.75rem; border-radius: 10px; box-shadow: inset 2px 2px 4px var(--sh-dark), inset -2px -2px 4px var(--sh-light); }
+
+    .btn-resolve {
+        padding: 0.4rem 0.85rem;
+        border: none;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+        color: #2f9e6e;
+        white-space: nowrap;
+        flex-shrink: 0;
+        box-shadow: 4px 4px 8px var(--sh-dark), -4px -4px 8px var(--sh-light);
+        transition: all 0.18s;
+    }
+
+    .btn-resolve:hover { transform: translateY(-1px); }
+
+    .resolved-badge {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #2f9e6e;
+        padding: 0.2rem 0.6rem;
+        border-radius: 99px;
+        box-shadow: inset 2px 2px 4px var(--sh-dark), inset -2px -2px 4px var(--sh-light);
+        flex-shrink: 0;
+    }
+
+    .empty { color: var(--text-muted); font-size: 0.85rem; padding: 1rem 0; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="bugs-wrap fade-up">
+
+    {% for msg in app.flashes('success') %}
+        <div class="flash-success">✓ {{ msg }}</div>
+    {% endfor %}
+
+    <div class="section-label">
+        En cours <span class="count">{{ open|length }}</span>
+    </div>
+
+    {% if open is empty %}
+        <p class="empty">Aucun bug en cours. 🎉</p>
+    {% else %}
+        {% for bug in open %}
+        <div class="bug-card">
+            <div class="bug-header">
+                <div>
+                    <div class="bug-title">{{ bug.title }}</div>
+                    <div class="bug-meta">
+                        Par {{ bug.reporter.email }} · {{ bug.createdAt|date('d/m/Y à H:i') }}
+                    </div>
+                    {% if bug.page %}
+                        <div class="bug-page">{{ bug.page }}</div>
+                    {% endif %}
+                </div>
+                <form method="POST" action="{{ path('app_admin_bug_resolve', {id: bug.id}) }}">
+                    <button type="submit" class="btn-resolve">✓ Résolu</button>
+                </form>
+            </div>
+            <div class="bug-desc">{{ bug.description }}</div>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if resolved is not empty %}
+    <div class="section-label">
+        Résolus <span class="count">{{ resolved|length }}</span>
+    </div>
+    {% for bug in resolved %}
+    <div class="bug-card" style="opacity:0.55;">
+        <div class="bug-header">
+            <div>
+                <div class="bug-title">{{ bug.title }}</div>
+                <div class="bug-meta">Par {{ bug.reporter.email }} · {{ bug.createdAt|date('d/m/Y') }}</div>
+            </div>
+            <span class="resolved-badge">✓ Résolu</span>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+</div>
+{% endblock %}

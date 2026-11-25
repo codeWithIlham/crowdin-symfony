@@ -1,0 +1,567 @@
+{% extends 'base_app.html.twig' %}
+{% block title %}Dashboard — Crowdin{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block topbar_actions %}
+    {% if isAdmin or isProjectManager %}
+        <a href="{{ path('app_project_new') }}" class="btn btn-primary">＋ Nouveau projet</a>
+    {% endif %}
+{% endblock %}
+
+{% block stylesheets %}
+<style>
+    /* ── Welcome ── */
+    .welcome-bar {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;
+    }
+    .welcome-bar h1 { font-size: 1.55rem; font-weight: 900; letter-spacing: -0.7px; margin-bottom: 0.2rem; }
+    .welcome-bar p  { color: var(--text-muted); font-size: 0.86rem; }
+
+    .role-chip {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        padding: 0.5rem 1.1rem; border-radius: 99px; flex-shrink: 0;
+        font-size: 0.75rem; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase;
+        color: var(--role-text);
+        box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light);
+    }
+
+    /* ── 5-stats bar ── */
+    .stats-5 {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 0.85rem;
+        margin-bottom: 2rem;
+    }
+    @media (max-width: 1100px) { .stats-5 { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 600px)  { .stats-5 { grid-template-columns: repeat(2, 1fr); } }
+
+    .s5 {
+        padding: 1.1rem 1.15rem;
+        border-radius: 16px;
+        box-shadow: 6px 6px 12px var(--sh-dark), -6px -6px 12px var(--sh-light);
+        transition: transform 0.18s;
+        position: relative; overflow: hidden;
+    }
+    .s5:hover { transform: translateY(-2px); }
+    .s5-icon  { font-size: 1rem; margin-bottom: 0.5rem; }
+    .s5-num   { font-size: 2rem; font-weight: 900; letter-spacing: -2px; line-height: 1; color: var(--text); }
+    .s5-label { font-size: 0.65rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 0.3rem; }
+    .s5.hl .s5-num { color: var(--role-text); }
+    .s5::before {
+        content: ''; position: absolute; bottom: -20px; right: -15px;
+        width: 65px; height: 65px; border-radius: 50%;
+        background: var(--sh-dark); opacity: 0.2;
+    }
+
+    /* ── Global progress bar ── */
+    .global-progress {
+        padding: 1.2rem 1.5rem; border-radius: 18px; margin-bottom: 2rem;
+        display: flex; align-items: center; gap: 1.25rem;
+        box-shadow: 7px 7px 14px var(--sh-dark), -7px -7px 14px var(--sh-light);
+    }
+    .global-progress-icon {
+        width: 48px; height: 48px; border-radius: 14px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.2rem;
+        box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+    }
+    .global-progress-info { flex: 1; }
+    .global-progress-head {
+        display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.4rem;
+    }
+    .global-progress-title { font-weight: 700; font-size: 0.9rem; }
+    .global-progress-pct   { font-weight: 900; font-size: 1.1rem; color: var(--role-text); }
+
+    /* ── Alerts (bugs/requests) ── */
+    .alert-row { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .alert-item {
+        flex: 1; min-width: 200px;
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.85rem 1rem; border-radius: 14px;
+        text-decoration: none; color: var(--text); transition: all 0.18s;
+        box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light);
+    }
+    .alert-item:hover { transform: translateX(3px); }
+    .alert-item-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .alert-item-title { font-size: 0.82rem; font-weight: 700; }
+    .alert-item-sub   { font-size: 0.7rem; color: var(--text-muted); }
+    .alert-item-arrow { margin-left: auto; font-size: 0.78rem; font-weight: 700; color: var(--role-text); }
+
+    /* ── Section header ── */
+    .section-hd {
+        display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem;
+    }
+    .section-hd-title { font-size: 1rem; font-weight: 700; letter-spacing: -0.2px; }
+    .section-count {
+        font-size: 0.68rem; color: var(--text-muted);
+        padding: 0.18rem 0.55rem; border-radius: 99px; margin-left: 0.5rem;
+        box-shadow: inset 2px 2px 3px var(--sh-dark), inset -2px -2px 3px var(--sh-light);
+    }
+
+    /* ── Document card grid ── */
+    .doc-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .doc-card {
+        border-radius: 18px; padding: 1.3rem;
+        display: flex; flex-direction: column; gap: 0.8rem;
+        transition: all 0.2s; text-decoration: none; color: inherit;
+        box-shadow: 7px 7px 14px var(--sh-dark), -7px -7px 14px var(--sh-light);
+    }
+    .doc-card:hover { transform: translateY(-2px); box-shadow: 9px 9px 18px var(--sh-dark), -9px -9px 18px var(--sh-light); }
+
+    /* Card header: paper icon + title + % */
+    .doc-head { display: flex; align-items: flex-start; gap: 0.8rem; }
+
+    .doc-paper {
+        width: 38px; height: 44px; flex-shrink: 0;
+        border-radius: 8px 14px 8px 8px;
+        box-shadow: 4px 4px 8px var(--sh-dark), -4px -4px 8px var(--sh-light);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.95rem; position: relative;
+    }
+    .doc-paper::after {
+        content: ''; position: absolute; top: 0; right: 0;
+        width: 10px; height: 10px;
+        background: var(--sh-dark); opacity: 0.35;
+        clip-path: polygon(100% 0, 0 0, 100% 100%);
+        border-radius: 0 14px 0 0;
+    }
+
+    .doc-info { flex: 1; min-width: 0; }
+    .doc-name {
+        font-size: 0.9rem; font-weight: 800; letter-spacing: -0.2px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        margin-bottom: 0.25rem;
+    }
+
+    .doc-langs { display: flex; align-items: center; flex-wrap: wrap; gap: 0.3rem; }
+    .chip-src {
+        font-size: 0.58rem; font-weight: 800; padding: 0.15rem 0.45rem;
+        border-radius: 5px; text-transform: uppercase; letter-spacing: 0.5px;
+        color: var(--text-dim);
+        box-shadow: inset 2px 2px 3px var(--sh-dark), inset -2px -2px 3px var(--sh-light);
+    }
+    .chip-arrow { color: var(--text-muted); font-size: 0.62rem; }
+    .chip-tgt {
+        font-size: 0.58rem; font-weight: 800; padding: 0.15rem 0.45rem;
+        border-radius: 5px; text-transform: uppercase; letter-spacing: 0.5px;
+        color: var(--role-text);
+        box-shadow: 2px 2px 3px var(--sh-dark), -2px -2px 3px var(--sh-light);
+    }
+
+    .doc-pct {
+        flex-shrink: 0; font-size: 0.7rem; font-weight: 800;
+        padding: 0.28rem 0.55rem; border-radius: 8px;
+        box-shadow: inset 2px 2px 3px var(--sh-dark), inset -2px -2px 3px var(--sh-light);
+    }
+    .doc-pct.pct-done { color: #2f9e6e; }
+    .doc-pct.pct-mid  { color: var(--role-text); }
+    .doc-pct.pct-low  { color: var(--text-muted); }
+
+    /* Meta chips */
+    .doc-meta { display: flex; gap: 0.45rem; flex-wrap: wrap; }
+    .mc {
+        display: inline-flex; align-items: center; gap: 0.25rem;
+        font-size: 0.65rem; font-weight: 600; color: var(--text-muted);
+        padding: 0.18rem 0.5rem; border-radius: 7px;
+        box-shadow: inset 2px 2px 3px var(--sh-dark), inset -2px -2px 3px var(--sh-light);
+    }
+    .mc.warn { color: #c97a2e; }
+
+    /* ── Timeline pipeline ── */
+    .tl-wrap { display: flex; flex-direction: column; gap: 0.28rem; }
+    .tl-dots {
+        display: grid;
+        grid-template-columns: auto 1fr auto 1fr auto 1fr auto 1fr auto;
+        align-items: center;
+    }
+    .tl-dot {
+        width: 9px; height: 9px; border-radius: 50%;
+        background: var(--bg);
+        box-shadow: 2px 2px 4px var(--sh-dark), -2px -2px 4px var(--sh-light);
+        transition: all 0.2s;
+        justify-self: center;
+    }
+    .tl-dot.on {
+        background: var(--role-a);
+        box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--role-a);
+    }
+    .tl-line { height: 2px; background: var(--sh-dark); transition: background 0.3s; }
+    .tl-line.on { background: linear-gradient(90deg, var(--role-a), var(--role-b)); }
+
+    .tl-labels {
+        display: grid;
+        grid-template-columns: auto 1fr auto 1fr auto 1fr auto 1fr auto;
+    }
+    .tl-lbl {
+        font-size: 0.5rem; font-weight: 600; color: var(--text-muted);
+        text-align: center; line-height: 1.2; padding: 0 1px;
+        justify-self: center;
+    }
+    .tl-lbl.on { color: var(--role-text); font-weight: 800; }
+    .tl-sp { /* spacer for connector columns in label row */ }
+
+    /* Progress bar */
+    .doc-prog-row {
+        display: flex; align-items: center; gap: 0.55rem;
+        font-size: 0.67rem; color: var(--text-muted);
+    }
+    .doc-prog-bar { flex: 1; }
+
+    /* Actions footer */
+    .doc-actions {
+        display: flex; gap: 0.4rem; justify-content: flex-end;
+        padding-top: 0.6rem;
+        border-top: 1px solid rgba(185,192,207,0.3);
+    }
+    .doc-btn {
+        font-size: 0.7rem; font-weight: 700; padding: 0.32rem 0.75rem;
+        border-radius: 9px; text-decoration: none; color: var(--text-dim);
+        transition: all 0.18s;
+        box-shadow: 3px 3px 5px var(--sh-dark), -3px -3px 5px var(--sh-light);
+    }
+    .doc-btn.primary { color: var(--role-text); }
+    .doc-btn:hover { transform: translateY(-1px); }
+
+    /* ── Empty state ── */
+    .empty-state { text-align: center; padding: 4rem 2rem; color: var(--text-muted); }
+    .empty-state h3 { font-size: 1rem; font-weight: 600; color: var(--text-dim); margin: 0.75rem 0 0.5rem; }
+    .empty-state p  { font-size: 0.85rem; margin-bottom: 1.5rem; line-height: 1.6; }
+
+    /* ── Translator layout ── */
+    .trans-layout {
+        display: grid;
+        grid-template-columns: 250px 1fr;
+        gap: 1.5rem;
+    }
+    @media (max-width: 768px) { .trans-layout { grid-template-columns: 1fr; } }
+
+    .trans-stat-col { display: flex; flex-direction: column; gap: 0.85rem; }
+
+    .big-num-card {
+        text-align: center; padding: 2rem 1.25rem;
+        border-radius: 18px;
+        box-shadow: 7px 7px 14px var(--sh-dark), -7px -7px 14px var(--sh-light);
+    }
+    .big-num { font-size: 3.5rem; font-weight: 900; letter-spacing: -4px; line-height: 1; color: var(--role-text); }
+    .big-num-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; }
+
+    .task-item {
+        display: flex; align-items: center; gap: 0.85rem;
+        padding: 0.9rem 1rem; border-radius: 14px;
+        text-decoration: none; color: inherit; transition: all 0.18s;
+        box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light);
+    }
+    .task-item:hover { transform: translateX(3px); }
+    .task-av { width: 36px; height: 36px; border-radius: 11px; font-size: 0.9rem; flex-shrink: 0; display: flex; align-items: center; justify-content: center; box-shadow: inset 2px 2px 4px var(--sh-dark), inset -2px -2px 4px var(--sh-light); }
+    .task-name { font-weight: 700; font-size: 0.85rem; margin-bottom: 0.1rem; }
+    .task-sub  { font-size: 0.7rem; color: var(--text-muted); }
+    .task-action { margin-left: auto; font-size: 0.7rem; font-weight: 700; padding: 0.28rem 0.65rem; border-radius: 8px; color: var(--role-text); white-space: nowrap; flex-shrink: 0; box-shadow: inset 2px 2px 3px var(--sh-dark), inset -2px -2px 3px var(--sh-light); }
+</style>
+{% endblock %}
+
+{% block body %}
+<div>
+
+    {# ── WELCOME BAR ── #}
+    <div class="welcome-bar fade-up">
+        <div>
+            <h1>Bonjour, <span class="grad">{{ app.user.username ?? app.user.email|split('@')|first }}</span> 👋</h1>
+            <p>
+                {% if isAdmin %}Gérez la plateforme, révisez et approuvez les traductions.
+                {% elseif isProjectManager %}Gérez vos projets et révisez les traductions.
+                {% else %}Vos tâches de traduction.{% endif %}
+            </p>
+        </div>
+        <div class="role-chip">
+            <span class="role-dot"></span>
+            {% if isAdmin %}★ Administrateur{% elseif isProjectManager %}⚙ Chef de projet{% else %}✎ Traducteur{% endif %}
+        </div>
+    </div>
+
+    {# ══════════════════════════════ #}
+    {# ── VUE ADMIN / CHEF DE PROJET ── #}
+    {# ══════════════════════════════ #}
+    {% if isAdmin or isProjectManager %}
+
+    {# Compute category stats from allProjects in Twig #}
+    {% set cntActive = 0 %}
+    {% set cntPending = 0 %}
+    {% set cntDone = 0 %}
+    {% set cntLangs = 0 %}
+    {% set cntTrans = 0 %}
+    {% for p in allProjects %}
+        {% set tr  = p.translations %}
+        {% set tot = tr|length %}
+        {% set app_ = tr|filter(t => t.status == 'approved')|length %}
+        {% set sub = tr|filter(t => t.status == 'submitted')|length %}
+        {% if tot > 0 and app_ == tot %}
+            {% set cntDone = cntDone + 1 %}
+        {% elseif sub > 0 %}
+            {% set cntPending = cntPending + 1 %}
+        {% else %}
+            {% set cntActive = cntActive + 1 %}
+        {% endif %}
+        {% set cntLangs = cntLangs + p.targetLanguages|length %}
+        {% set cntTrans = cntTrans + p.translators|length %}
+    {% endfor %}
+
+    {# ── 5-STAT BAR ── #}
+    <div class="stats-5 fade-up fade-up-1">
+        <div class="s5 hl">
+            <div class="s5-icon">📂</div>
+            <div class="s5-num">{{ cntActive }}</div>
+            <div class="s5-label">Projets actifs</div>
+        </div>
+        <div class="s5">
+            <div class="s5-icon">⏳</div>
+            <div class="s5-num">{{ cntPending }}</div>
+            <div class="s5-label">En attente</div>
+        </div>
+        <div class="s5">
+            <div class="s5-icon">✅</div>
+            <div class="s5-num">{{ cntDone }}</div>
+            <div class="s5-label">Terminés</div>
+        </div>
+        <div class="s5">
+            <div class="s5-icon">🌍</div>
+            <div class="s5-num">{{ cntLangs }}</div>
+            <div class="s5-label">Langues</div>
+        </div>
+        <div class="s5">
+            <div class="s5-icon">👥</div>
+            <div class="s5-num">{{ cntTrans }}</div>
+            <div class="s5-label">Traducteurs</div>
+        </div>
+    </div>
+
+    {# ── GLOBAL PROGRESS ── #}
+    {% if totalTranslations > 0 %}
+    {% set globalPct = (doneTranslations / totalTranslations * 100)|round %}
+    <div class="global-progress fade-up fade-up-2">
+        <div class="global-progress-icon">🌍</div>
+        <div class="global-progress-info">
+            <div class="global-progress-head">
+                <span class="global-progress-title">Progression globale</span>
+                <span class="global-progress-pct">{{ globalPct }}%</span>
+            </div>
+            <div class="progress-wrap" style="height:7px;">
+                <div class="progress-bar" style="width:{{ globalPct }}%"></div>
+            </div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.3rem;">{{ doneTranslations }} / {{ totalTranslations }} chaînes approuvées</div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── BUGS (admin seulement) ── #}
+    {% if isAdmin and openBugs > 0 %}
+    <div class="alert-row fade-up fade-up-2">
+        <a href="{{ path('app_admin_bugs') }}" class="alert-item">
+            <span class="alert-item-icon">🐛</span>
+            <div>
+                <div class="alert-item-title">{{ openBugs }} bug(s) signalé(s)</div>
+                <div class="alert-item-sub">Non résolus</div>
+            </div>
+            <span class="alert-item-arrow">Voir →</span>
+        </a>
+    </div>
+    {% endif %}
+
+    {# ── SECTION PROJETS ── #}
+    <div class="section-hd fade-up fade-up-3">
+        <div>
+            <span class="section-hd-title">{% if isAdmin %}Tous les projets{% else %}Mes projets{% endif %}</span>
+            <span class="section-count">{{ totalProjects }}</span>
+        </div>
+        <a href="{{ path('app_projects') }}" class="btn btn-outline" style="font-size:0.78rem;padding:0.4rem 0.85rem;">Voir tout →</a>
+    </div>
+
+    {% if allProjects is empty %}
+        <div class="glass empty-state fade-up fade-up-3">
+            <div style="font-size:2.5rem;opacity:0.35;">📁</div>
+            <h3>{% if isAdmin %}Aucun projet{% else %}Créez votre premier projet{% endif %}</h3>
+            <p>Définissez les langues cibles, importez votre contenu, assignez vos traducteurs.</p>
+            {% if isProjectManager %}
+                <a href="{{ path('app_project_new') }}" class="btn btn-primary">＋ Créer un projet</a>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="doc-grid fade-up fade-up-3">
+        {% for project in allProjects %}
+            {% set tr         = project.translations %}
+            {% set totalStr   = tr|length %}
+            {% set approvedStr= tr|filter(t => t.status == 'approved')|length %}
+            {% set submittedStr = tr|filter(t => t.status == 'submitted')|length %}
+            {% set pct        = totalStr > 0 ? (approvedStr / totalStr * 100)|round : 0 %}
+
+            {# Timeline stage (0–4): Créé / Assigné / En cours / Révision / Terminé #}
+            {% set stage = 0 %}
+            {% if project.translators|length > 0 %}{% set stage = 1 %}{% endif %}
+            {% if totalStr > 0 %}{% set stage = 2 %}{% endif %}
+            {% if submittedStr > 0 or approvedStr > 0 %}{% set stage = 3 %}{% endif %}
+            {% if totalStr > 0 and approvedStr == totalStr %}{% set stage = 4 %}{% endif %}
+
+            <div class="doc-card">
+
+                {# Header #}
+                <div class="doc-head">
+                    <div class="doc-paper">📄</div>
+                    <div class="doc-info">
+                        <div class="doc-name">{{ project.name }}</div>
+                        <div class="doc-langs">
+                            {% if project.sourceLanguage %}
+                                <span class="chip-src">{{ project.sourceLanguage.code|upper }}</span>
+                                <span class="chip-arrow">→</span>
+                            {% endif %}
+                            {% for lang in project.targetLanguages %}
+                                <span class="chip-tgt">{{ lang.code }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <span class="doc-pct {% if pct == 100 %}pct-done{% elseif pct >= 50 %}pct-mid{% else %}pct-low{% endif %}">{{ pct }}%</span>
+                </div>
+
+                {# Meta #}
+                <div class="doc-meta">
+                    <span class="mc">👥 {{ project.translators|length }} traducteur(s)</span>
+                    <span class="mc">📝 {{ totalStr }} chaîne(s)</span>
+                    {% if submittedStr > 0 %}
+                        <span class="mc warn">⏳ {{ submittedStr }} à réviser</span>
+                    {% endif %}
+                </div>
+
+                {# Timeline pipeline #}
+                {% set steps = ['Créé', 'Assigné', 'En cours', 'Révision', 'Terminé'] %}
+                <div class="tl-wrap">
+                    <div class="tl-dots">
+                        {% for step in steps %}
+                            <div class="tl-dot {% if loop.index0 <= stage %}on{% endif %}"></div>
+                            {% if not loop.last %}<div class="tl-line {% if loop.index0 < stage %}on{% endif %}"></div>{% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="tl-labels">
+                        {% for step in steps %}
+                            <div class="tl-lbl {% if loop.index0 <= stage %}on{% endif %}">{{ step }}</div>
+                            {% if not loop.last %}<div class="tl-sp"></div>{% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {# Progress bar #}
+                <div class="doc-prog-row">
+                    <span style="white-space:nowrap;">{{ approvedStr }}/{{ totalStr }}</span>
+                    <div class="doc-prog-bar">
+                        <div class="progress-wrap" style="height:5px;">
+                            <div class="progress-bar" style="width:{{ pct }}%"></div>
+                        </div>
+                    </div>
+                    <span style="white-space:nowrap;font-weight:700;color:var(--role-text);">{{ pct }}%</span>
+                </div>
+
+                {# Actions #}
+                <div class="doc-actions">
+                    <a href="{{ path('app_project_show', {id: project.id}) }}" class="doc-btn">Détails</a>
+                    {% if is_granted('ROLE_ADMIN') or project.owner == app.user %}
+                        <a href="{{ path('app_project_import', {id: project.id}) }}" class="doc-btn">Importer</a>
+                        {% if submittedStr > 0 %}
+                            <a href="{{ path('app_project_review', {id: project.id}) }}" class="doc-btn primary">Réviser ({{ submittedStr }}) →</a>
+                        {% else %}
+                            <a href="{{ path('app_project_review', {id: project.id}) }}" class="doc-btn">Révision</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+
+            </div>
+        {% endfor %}
+        </div>
+    {% endif %}
+
+    {# ══════════════════════════════ #}
+    {# ── VUE TRADUCTEUR ── #}
+    {# ══════════════════════════════ #}
+    {% else %}
+
+    <div class="trans-layout">
+
+        {# Col gauche: stats perso #}
+        <div class="trans-stat-col fade-up fade-up-1">
+            <div class="big-num-card">
+                <div class="big-num">{{ myDone }}</div>
+                <div class="big-num-label">Chaînes traduites par vous</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📁</div>
+                <div class="stat-number">{{ allProjects|length }}</div>
+                <div class="stat-label">Projets dispo</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📝</div>
+                <div class="stat-number">{{ totalStrings }}</div>
+                <div class="stat-label">Chaînes totales</div>
+            </div>
+            {% if totalStrings > 0 %}
+            {% set myPct = myDone > 0 ? (myDone / totalStrings * 100)|round : 0 %}
+            {% set myPct = myPct > 100 ? 100 : myPct %}
+            <div class="glass" style="padding:1.1rem;">
+                <div style="font-size:0.62rem;font-weight:700;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:0.7rem;">Ma contribution</div>
+                <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:0.45rem;">
+                    <span>{{ myDone }} chaînes</span>
+                    <span class="grad" style="font-weight:800;">{{ myPct }}%</span>
+                </div>
+                <div class="progress-wrap" style="height:5px;">
+                    <div class="progress-bar" style="width:{{ myPct }}%"></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Col droite: projets #}
+        <div class="fade-up fade-up-2">
+            <div class="section-hd" style="margin-bottom:0.85rem;">
+                <span class="section-hd-title">Projets à traduire</span>
+                <span class="section-count">{{ allProjects|length }}</span>
+            </div>
+            {% if allProjects is empty %}
+                <div class="glass empty-state">
+                    <div style="font-size:2rem;opacity:0.35;">✎</div>
+                    <h3>Aucun projet disponible</h3>
+                    <p>Aucun projet disponible pour l'instant.</p>
+                </div>
+            {% else %}
+                <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                {% for project in allProjects %}
+                    {% set tr     = project.translations %}
+                    {% set tot    = tr|length %}
+                    {% set done   = tr|filter(t => t.translatedText is not null and t.translatedText != '')|length %}
+                    {% set pct    = tot > 0 ? (done / tot * 100)|round : 0 %}
+                    <a href="{{ path('app_project_show', {id: project.id}) }}" class="task-item">
+                        <div class="task-av">📄</div>
+                        <div style="flex:1;min-width:0;">
+                            <div class="task-name">{{ project.name }}</div>
+                            <div class="task-sub">
+                                {% if project.sourceLanguage %}{{ project.sourceLanguage.code|upper }} → {% endif %}
+                                {% for lang in project.targetLanguages %}{{ lang.code|upper }}{% if not loop.last %}, {% endif %}{% else %}—{% endfor %}
+                            </div>
+                            <div class="progress-wrap" style="height:3px;margin-top:0.4rem;">
+                                <div class="progress-bar" style="width:{{ pct }}%"></div>
+                            </div>
+                        </div>
+                        <span class="task-action">{{ pct }}% →</span>
+                    </a>
+                {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

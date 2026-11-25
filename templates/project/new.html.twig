@@ -1,0 +1,95 @@
+{% extends 'base_app.html.twig' %}
+{% block title %}Nouveau projet — Crowdin{% endblock %}
+{% block page_title %}Nouveau projet{% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .form-wrap { max-width: 640px; }
+    .form-wrap label { display:block;font-size:0.72rem;font-weight:700;color:var(--text-muted);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:0.45rem; }
+    .form-wrap input[type=text], .form-wrap textarea, .form-wrap select {
+        width:100%;padding:0.75rem 1rem;background:var(--bg);border:none;border-radius:13px;
+        color:var(--text);font-size:0.9rem;font-family:inherit;outline:none;
+        transition:all 0.2s;box-shadow:inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+    }
+    .form-wrap input[type=text]:focus, .form-wrap textarea:focus, .form-wrap select:focus {
+        box-shadow:inset 4px 4px 8px var(--sh-dark), inset -4px -4px 8px var(--sh-light), 0 0 0 2px var(--role-a);
+    }
+    .form-wrap .form-group { margin-bottom:1.2rem; }
+    .checkboxes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+    .checkbox-item { display:flex;align-items:center;gap:0.6rem;padding:0.65rem 0.8rem;border-radius:11px;cursor:pointer;transition:all 0.18s;box-shadow:3px 3px 6px var(--sh-dark), -3px -3px 6px var(--sh-light); }
+    .checkbox-item:has(input:checked) { box-shadow:inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light); }
+    .checkbox-item input[type=checkbox] { accent-color: var(--role-a); width:15px;height:15px;flex-shrink:0; }
+    .checkbox-item label { font-size:0.85rem;font-weight:500;color:var(--text);text-transform:none;letter-spacing:0;margin:0;cursor:pointer; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="fade-up form-wrap">
+    <div style="margin-bottom:1.5rem;">
+        <a href="{{ path('app_projects') }}" style="color:var(--text-muted);text-decoration:none;font-size:0.85rem;">← Retour aux projets</a>
+    </div>
+
+    <div class="glass" style="padding:2rem;">
+        {{ form_start(form, {attr: {novalidate: 'novalidate'}}) }}
+
+            <div class="form-group">
+                {{ form_label(form.name) }}
+                {{ form_widget(form.name, {attr: {placeholder: 'Ex: Mon application mobile'}}) }}
+                {% for error in form.name.vars.errors %}
+                    <span class="field-error-pill">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        {{ error.message }}
+                    </span>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                {{ form_label(form.description) }}
+                {{ form_widget(form.description, {attr: {placeholder: 'Décrivez votre projet...'}}) }}
+            </div>
+
+            <div class="form-group">
+                {{ form_label(form.sourceLanguage) }}
+                {{ form_widget(form.sourceLanguage) }}
+                {{ form_errors(form.sourceLanguage) }}
+            </div>
+
+            <div class="form-group">
+                <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--text-muted);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:0.75rem;">Langues cibles</label>
+                <div class="checkboxes">
+                    {% for choice in form.targetLanguages %}
+                        <div class="checkbox-item">
+                            {{ form_widget(choice) }}
+                            {{ form_label(choice) }}
+                        </div>
+                    {% else %}
+                        <p style="font-size:0.8rem;color:var(--text-muted);grid-column:1/-1;">Aucune langue disponible. Ajoutez-en depuis le panneau admin.</p>
+                    {% endfor %}
+                </div>
+                {% do form.targetLanguages.setRendered() %}
+            </div>
+
+            <div class="form-group">
+                <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--text-muted);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:0.75rem;">Traducteurs assignés</label>
+                <div class="checkboxes">
+                    {% for choice in form.translators %}
+                        <div class="checkbox-item">
+                            {{ form_widget(choice) }}
+                            {{ form_label(choice) }}
+                        </div>
+                    {% else %}
+                        <p style="font-size:0.8rem;color:var(--text-muted);grid-column:1/-1;">Aucun traducteur disponible.</p>
+                    {% endfor %}
+                </div>
+                {% do form.translators.setRendered() %}
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:0.5rem;">
+                Créer le projet →
+            </button>
+
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

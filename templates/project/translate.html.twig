@@ -1,0 +1,431 @@
+{% extends 'base_app.html.twig' %}
+{% block title %}Traduire — {{ language.name }}{% endblock %}
+{% block page_title %}Éditeur de traduction{% endblock %}
+{% block nav_projects %}active{% endblock %}
+
+{% block topbar_actions %}
+    <a href="{{ path('app_project_show', {id: project.id}) }}" class="btn btn-outline">← Retour</a>
+{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .editor-wrap { display: grid; grid-template-columns: 1fr 300px; gap: 1.25rem; align-items: start; }
+    @media (max-width: 900px) { .editor-wrap { grid-template-columns: 1fr; } }
+
+    .editor-topbar {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        padding: 1rem 1.25rem;
+        background: var(--bg);
+        border-radius: 16px;
+        box-shadow: 6px 6px 12px var(--sh-dark), -6px -6px 12px var(--sh-light);
+    }
+
+    .lang-pill {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.45rem 0.95rem;
+        border-radius: 99px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--role-text);
+        flex-shrink: 0;
+        box-shadow: inset 2px 2px 4px var(--sh-dark), inset -2px -2px 4px var(--sh-light);
+    }
+
+    .progress-section { flex: 1; }
+
+    .progress-nums {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        margin-bottom: 0.35rem;
+    }
+
+    .progress-nums strong { color: var(--text); }
+
+    .nav-arrows { display: flex; gap: 0.4rem; flex-shrink: 0; }
+
+    .arrow-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 11px;
+        background: var(--bg);
+        color: var(--text-muted);
+        font-size: 1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        transition: all 0.18s;
+        box-shadow: 4px 4px 8px var(--sh-dark), -4px -4px 8px var(--sh-light);
+    }
+
+    .arrow-btn:hover { color: var(--text); }
+    .arrow-btn.disabled { opacity: 0.35; pointer-events: none; }
+
+    .editor-main { display: flex; flex-direction: column; gap: 1rem; }
+
+    .status-banner {
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+        font-size: 0.82rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        line-height: 1.5;
+    }
+
+    .status-rejected  { background: var(--bg); color: #c0556a; box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light); }
+    .status-submitted { background: var(--bg); color: #c97a2e; box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light); }
+    .status-approved  { background: var(--bg); color: #2f9e6e; box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light); }
+
+    .source-card, .translation-card {
+        padding: 1.4rem;
+        background: var(--bg);
+        border-radius: 16px;
+        box-shadow: 6px 6px 12px var(--sh-dark), -6px -6px 12px var(--sh-light);
+    }
+
+    .card-label {
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        margin-bottom: 0.75rem;
+        opacity: 0.7;
+    }
+
+    .source-key-badge {
+        display: inline-block;
+        font-family: monospace;
+        font-size: 0.75rem;
+        color: var(--role-text);
+        padding: 0.22rem 0.6rem;
+        border-radius: 7px;
+        margin-bottom: 0.75rem;
+        box-shadow: inset 2px 2px 4px var(--sh-dark), inset -2px -2px 4px var(--sh-light);
+    }
+
+    .source-text {
+        font-size: 1.05rem;
+        line-height: 1.7;
+        color: var(--text);
+        font-weight: 500;
+    }
+
+    .trans-textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 1rem;
+        background: var(--bg);
+        border: none;
+        border-radius: 13px;
+        color: var(--text);
+        font-size: 1rem;
+        font-family: inherit;
+        line-height: 1.7;
+        resize: vertical;
+        outline: none;
+        transition: all 0.2s;
+        box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+    }
+
+    .trans-textarea:focus {
+        box-shadow: inset 4px 4px 8px var(--sh-dark), inset -4px -4px 8px var(--sh-light), 0 0 0 2px var(--role-a);
+    }
+
+    .trans-textarea::placeholder { color: var(--text-muted); opacity: 0.6; font-style: italic; }
+
+    .editor-actions { display: flex; gap: 0.6rem; margin-top: 1rem; flex-wrap: wrap; }
+
+    .btn-save {
+        padding: 0.7rem 1.1rem;
+        border-radius: 12px;
+        border: none;
+        background: var(--bg);
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.18s;
+        box-shadow: 4px 4px 8px var(--sh-dark), -4px -4px 8px var(--sh-light);
+    }
+
+    .btn-save:hover { color: var(--text); }
+
+    .btn-submit {
+        flex: 1;
+        padding: 0.7rem 1.25rem;
+        border-radius: 12px;
+        border: none;
+        background: var(--bg);
+        color: var(--role-text);
+        font-size: 0.88rem;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.22s;
+        box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light);
+    }
+
+    .btn-submit:hover { transform: translateY(-1px); }
+
+    .btn-next {
+        padding: 0.7rem 1rem;
+        border-radius: 12px;
+        border: none;
+        background: var(--bg);
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.18s;
+        box-shadow: 4px 4px 8px var(--sh-dark), -4px -4px 8px var(--sh-light);
+    }
+
+    .btn-next:hover { color: var(--text); }
+
+    /* Sidebar */
+    .editor-sidebar { display: flex; flex-direction: column; gap: 1rem; }
+
+    .sidebar-card {
+        padding: 1.1rem 1.2rem;
+        background: var(--bg);
+        border-radius: 16px;
+        box-shadow: 6px 6px 12px var(--sh-dark), -6px -6px 12px var(--sh-light);
+    }
+
+    .sidebar-title {
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 0.85rem;
+        opacity: 0.7;
+    }
+
+    .mini-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+
+    .mini-stat {
+        padding: 0.75rem;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: inset 2px 2px 4px var(--sh-dark), inset -2px -2px 4px var(--sh-light);
+    }
+
+    .mini-stat-num { font-size: 1.4rem; font-weight: 900; letter-spacing: -1px; }
+    .mini-stat-label { font-size: 0.62rem; color: var(--text-muted); margin-top: 0.2rem; text-transform: uppercase; letter-spacing: 0.8px; }
+
+    .string-list { display: flex; flex-direction: column; gap: 0.3rem; max-height: 360px; overflow-y: auto; }
+
+    .string-item {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.55rem 0.7rem;
+        border-radius: 10px;
+        text-decoration: none;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        transition: all 0.15s;
+    }
+
+    .string-item:hover { color: var(--text); }
+    .string-item.current { color: var(--text); box-shadow: inset 2px 2px 4px var(--sh-dark), inset -2px -2px 4px var(--sh-light); }
+
+    .string-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .dot-pending   { background: var(--sh-dark); }
+    .dot-submitted { background: #c97a2e; }
+    .dot-approved  { background: #2f9e6e; }
+    .dot-rejected  { background: #c0556a; }
+
+    .string-item-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .empty-editor { text-align: center; padding: 4rem 2rem; color: var(--text-muted); }
+</style>
+{% endblock %}
+
+{% block body %}
+
+{% if total == 0 %}
+<div class="glass empty-editor">
+    <div style="font-size:3rem;opacity:0.4;margin-bottom:1rem;">✎</div>
+    <h3 style="font-size:1rem;font-weight:600;color:var(--text-dim);margin-bottom:0.5rem;">Aucune chaîne à traduire</h3>
+    <p style="font-size:0.85rem;margin-bottom:1.5rem;">L'admin n'a pas encore importé de contenu pour cette langue.</p>
+    <a href="{{ path('app_project_show', {id: project.id}) }}" class="btn btn-outline">← Retour</a>
+</div>
+{% else %}
+
+{% set pendingCount   = translations|filter(t => t.status == 'pending')|length %}
+{% set submittedCount = translations|filter(t => t.status == 'submitted')|length %}
+{% set approvedCount  = translations|filter(t => t.status == 'approved')|length %}
+{% set rejectedCount  = translations|filter(t => t.status == 'rejected')|length %}
+
+<div class="editor-topbar fade-up">
+    <div class="lang-pill">{{ language.code|upper }} · {{ language.name }}</div>
+    <div class="progress-section">
+        <div class="progress-nums">
+            <span>Chaîne <strong>{{ currentIndex + 1 }}</strong> / {{ total }}</span>
+            <span><strong style="color:#2f9e6e;">{{ approvedCount }}</strong> approuvée(s)</span>
+        </div>
+        <div class="progress-wrap">
+            <div class="progress-bar" style="width:{{ total > 0 ? (approvedCount / total * 100)|round : 0 }}%"></div>
+        </div>
+    </div>
+    <div class="nav-arrows">
+        <a href="{{ currentIndex > 0 ? path('app_project_translate', {id: project.id, languageId: language.id, i: currentIndex - 1}) : '#' }}"
+           class="arrow-btn {% if currentIndex == 0 %}disabled{% endif %}">←</a>
+        <a href="{{ currentIndex < total - 1 ? path('app_project_translate', {id: project.id, languageId: language.id, i: currentIndex + 1}) : '#' }}"
+           class="arrow-btn {% if currentIndex >= total - 1 %}disabled{% endif %}">→</a>
+    </div>
+</div>
+
+<div class="editor-wrap fade-up" style="animation-delay:0.06s;">
+
+    <div class="editor-main">
+
+        {% if current.status == 'rejected' %}
+        <div class="status-banner status-rejected">
+            <span>✗</span>
+            <div>
+                <strong>Traduction rejetée par l'admin.</strong>
+                {% if current.reviewComment %}
+                    <br>Commentaire : {{ current.reviewComment }}
+                {% endif %}
+                <br><span style="opacity:0.75;font-size:0.78rem;">Corrigez ci-dessous et soumettez à nouveau.</span>
+            </div>
+        </div>
+        {% elseif current.status == 'submitted' %}
+        <div class="status-banner status-submitted">
+            <span>⏳</span>
+            <div><strong>En attente de révision.</strong> L'admin n'a pas encore révisé cette traduction.</div>
+        </div>
+        {% elseif current.status == 'approved' %}
+        <div class="status-banner status-approved">
+            <span>✓</span>
+            <strong>Traduction approuvée par l'admin.</strong>
+        </div>
+        {% endif %}
+
+        <div class="source-card">
+            <div class="card-label" style="color:var(--text-muted);">Texte source</div>
+            <div class="source-text">{{ current.sourceText }}</div>
+        </div>
+
+        <div class="translation-card">
+            <div class="card-label" style="color:var(--role-label);">Traduction en {{ language.name }}</div>
+
+            {% for msg in app.flashes('success') %}
+                <div class="flash-success">✓ {{ msg }}</div>
+            {% endfor %}
+            {% for msg in app.flashes('error') %}
+                <div class="flash-error">⚠ {{ msg }}</div>
+            {% endfor %}
+
+            {% if current.status == 'approved' %}
+                <div style="padding:1rem;border-radius:13px;color:var(--text-dim);font-size:0.95rem;line-height:1.7;box-shadow:inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);">
+                    {{ current.translatedText }}
+                </div>
+                <div style="margin-top:0.75rem;font-size:0.75rem;color:var(--text-muted);">
+                    Cette traduction est approuvée et verrouillée.
+                </div>
+            {% else %}
+            <form method="POST" id="editor-form">
+                <textarea
+                    class="trans-textarea"
+                    name="translated_text"
+                    id="trans-input"
+                    placeholder="Écrivez votre traduction en {{ language.name }}..."
+                    autofocus
+                >{{ current.translatedText ?? '' }}</textarea>
+
+                <div class="editor-actions">
+                    <button type="submit" name="action" value="save" class="btn-save">Brouillon</button>
+                    <button type="submit" name="action" value="submit" class="btn-submit">✓ Soumettre pour révision</button>
+                    {% if currentIndex < total - 1 %}
+                        <button type="submit" name="action" value="submit_next" class="btn-next">Suivant →</button>
+                    {% endif %}
+                </div>
+            </form>
+
+            <div style="margin-top:0.85rem;display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted);">
+                <span id="word-count">0 mot(s)</span>
+                <span>Ctrl+Enter pour soumettre</span>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <div class="editor-sidebar">
+        <div class="sidebar-card">
+            <div class="sidebar-title">Progression</div>
+            <div class="mini-stats">
+                <div class="mini-stat">
+                    <div class="mini-stat-num" style="color:var(--text-muted);">{{ pendingCount }}</div>
+                    <div class="mini-stat-label">À faire</div>
+                </div>
+                <div class="mini-stat">
+                    <div class="mini-stat-num" style="color:#c97a2e;">{{ submittedCount }}</div>
+                    <div class="mini-stat-label">En attente</div>
+                </div>
+                <div class="mini-stat">
+                    <div class="mini-stat-num" style="color:#2f9e6e;">{{ approvedCount }}</div>
+                    <div class="mini-stat-label">Approuvées</div>
+                </div>
+                <div class="mini-stat">
+                    <div class="mini-stat-num" style="color:#c0556a;">{{ rejectedCount }}</div>
+                    <div class="mini-stat-label">Rejetées</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-card">
+            <div class="sidebar-title">Toutes les chaînes</div>
+            <div class="string-list">
+                {% for i, t in translations %}
+                <a href="{{ path('app_project_translate', {id: project.id, languageId: language.id, i: i}) }}"
+                   class="string-item {% if i == currentIndex %}current{% endif %}">
+                    <span class="string-dot dot-{{ t.status }}"></span>
+                    <span class="string-item-text">{{ t.sourceText|length > 40 ? t.sourceText|slice(0,40) ~ '…' : t.sourceText }}</span>
+                    {% if t.status == 'approved' %}<span style="font-size:0.62rem;color:#2f9e6e;">✓</span>{% endif %}
+                    {% if t.status == 'rejected' %}<span style="font-size:0.62rem;color:#c0556a;">✗</span>{% endif %}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const textarea = document.getElementById('trans-input');
+const wordCount = document.getElementById('word-count');
+
+function updateWordCount() {
+    const words = textarea.value.trim().split(/\s+/).filter(w => w.length > 0);
+    wordCount.textContent = words.length + ' mot(s)';
+}
+
+textarea.addEventListener('input', updateWordCount);
+updateWordCount();
+
+textarea.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        document.querySelector('[name="action"][value="submit"]').click();
+    }
+});
+</script>
+
+{% endif %}
+{% endblock %}

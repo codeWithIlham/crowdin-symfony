@@ -1,0 +1,339 @@
+{% extends 'base_app.html.twig' %}
+{% block title %}Mon profil{% endblock %}
+{% block page_title %}Mon profil{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .profile-wrap { max-width: 560px; }
+
+    .profile-card {
+        border-radius: 20px;
+        padding: 1.75rem 2rem;
+        box-shadow: 8px 8px 16px var(--sh-dark), -8px -8px 16px var(--sh-light);
+        margin-bottom: 1.25rem;
+        position: relative;
+    }
+
+    /* ── Avatar & infos ── */
+    .profile-avatar {
+        width: 68px; height: 68px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.7rem; font-weight: 900;
+        color: var(--role-text);
+        margin-bottom: 1rem;
+        box-shadow: 6px 6px 12px var(--sh-dark), -6px -6px 12px var(--sh-light);
+    }
+
+    .profile-name  { font-size: 1.15rem; font-weight: 800; margin-bottom: 0.2rem; }
+    .profile-email { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.55rem; }
+
+    .role-pill {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        font-size: 0.68rem; font-weight: 800; letter-spacing: 1px;
+        text-transform: uppercase; color: var(--role-text);
+        padding: 0.25rem 0.75rem; border-radius: 99px;
+        box-shadow: inset 2px 2px 4px var(--sh-dark), inset -2px -2px 4px var(--sh-light);
+    }
+
+    .profile-desc {
+        font-size: 0.88rem; color: var(--text-muted);
+        line-height: 1.65; margin-top: 0.9rem;
+        font-style: italic;
+    }
+
+    /* ── Pencil btn ── */
+    .btn-pencil {
+        position: absolute; top: 1.25rem; right: 1.25rem;
+        width: 34px; height: 34px;
+        border: none; border-radius: 10px;
+        background: var(--bg); cursor: pointer;
+        font-size: 0.9rem; color: var(--text-muted);
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 4px 4px 8px var(--sh-dark), -4px -4px 8px var(--sh-light);
+        transition: all 0.2s;
+    }
+    .btn-pencil:hover { color: var(--role-text); box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light); }
+    .btn-pencil.active { box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light); color: var(--role-text); }
+
+    /* ── Section header (accordéon) ── */
+    .section-header {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+    .section-title { font-size: 0.9rem; font-weight: 800; }
+
+    .btn-toggle {
+        padding: 0.3rem 0.85rem;
+        border: none; border-radius: 10px;
+        background: var(--bg); cursor: pointer;
+        font-size: 0.78rem; font-weight: 700; color: var(--role-text);
+        font-family: inherit;
+        box-shadow: 4px 4px 8px var(--sh-dark), -4px -4px 8px var(--sh-light);
+        transition: all 0.2s;
+    }
+    .btn-toggle:hover { box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light); }
+    .btn-toggle.open  { box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light); }
+
+    /* ── Champs formulaire ── */
+    .field-group { margin-bottom: 1rem; }
+    .field-label {
+        display: block; font-size: 0.68rem; font-weight: 800;
+        color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;
+        margin-bottom: 0.4rem;
+    }
+    .field-input, .field-textarea, .field-select {
+        width: 100%; padding: 0.78rem 1rem;
+        background: var(--bg); border: none; border-radius: 12px;
+        color: var(--text); font-size: 0.9rem; font-family: inherit;
+        outline: none;
+        box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+        transition: all 0.2s;
+    }
+    .field-input:focus, .field-textarea:focus, .field-select:focus {
+        box-shadow: inset 4px 4px 8px var(--sh-dark), inset -4px -4px 8px var(--sh-light), 0 0 0 2px var(--role-a);
+    }
+    .field-input::placeholder, .field-textarea::placeholder { color: var(--text-muted); opacity: 0.6; }
+    .field-textarea { resize: vertical; min-height: 90px; }
+
+    .btn-row { display: flex; gap: 0.5rem; margin-top: 1rem; }
+
+    .submit-btn {
+        flex: 1; padding: 0.85rem;
+        border: none; border-radius: 14px;
+        color: var(--role-text); font-size: 0.9rem; font-weight: 800;
+        cursor: pointer; font-family: inherit;
+        box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light);
+        transition: all 0.2s; background: var(--bg);
+    }
+    .submit-btn:hover { transform: translateY(-1px); }
+    .submit-btn.secondary { color: var(--text-muted); flex: 0 0 auto; padding: 0.85rem 1.2rem; }
+
+    /* ── Langues ── */
+    .lang-chips-view { display: flex; flex-direction: column; gap: 0.45rem; }
+
+    .lang-chip-item {
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.6rem 0.9rem; border-radius: 12px;
+        box-shadow: inset 2px 2px 5px var(--sh-dark), inset -2px -2px 5px var(--sh-light);
+    }
+
+    .lang-code {
+        font-size: 0.62rem; font-weight: 800; text-transform: uppercase;
+        letter-spacing: 0.5px; color: var(--role-text);
+        padding: 0.18rem 0.5rem; border-radius: 6px; flex-shrink: 0;
+        box-shadow: 2px 2px 4px var(--sh-dark), -2px -2px 4px var(--sh-light);
+    }
+
+    .lang-name  { font-size: 0.88rem; font-weight: 600; flex: 1; }
+    .lang-level { font-size: 0.72rem; color: var(--text-muted); }
+
+    .lang-remove {
+        background: none; border: none; color: #c0556a;
+        font-size: 0.8rem; cursor: pointer; font-weight: 700;
+        padding: 0.2rem 0.4rem; border-radius: 6px; flex-shrink: 0;
+        transition: opacity 0.15s;
+    }
+    .lang-remove:hover { opacity: 0.7; }
+
+    .add-lang-row {
+        display: grid; grid-template-columns: 1fr 130px auto;
+        gap: 0.5rem; align-items: end; margin-top: 1rem;
+    }
+    @media (max-width: 480px) { .add-lang-row { grid-template-columns: 1fr; } }
+
+    .add-lang-btn {
+        padding: 0.78rem 1rem; border: none; border-radius: 12px;
+        background: var(--bg); color: var(--role-text);
+        font-size: 0.82rem; font-weight: 700; cursor: pointer;
+        font-family: inherit; white-space: nowrap;
+        box-shadow: 5px 5px 10px var(--sh-dark), -5px -5px 10px var(--sh-light);
+        transition: all 0.2s;
+    }
+    .add-lang-btn:hover { transform: translateY(-1px); }
+
+    /* ── Error / divider ── */
+    .error-box {
+        padding: 0.8rem 1rem; border-radius: 12px;
+        font-size: 0.85rem; margin-bottom: 1rem; color: #c0556a;
+        box-shadow: inset 3px 3px 6px var(--sh-dark), inset -3px -3px 6px var(--sh-light);
+    }
+
+    .section-sep {
+        height: 1px; background: var(--sh-dark);
+        margin: 1.25rem 0; opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="profile-wrap fade-up">
+
+    {% for msg in app.flashes('success') %}
+        <div class="flash-success">✓ {{ msg }}</div>
+    {% endfor %}
+
+    {# ── CARTE PROFIL (aperçu + crayon) ── #}
+    <div class="profile-card">
+
+        <button class="btn-pencil" id="btn-edit" onclick="toggleEdit()" title="Modifier le profil">✏</button>
+
+        {# Vue lecture #}
+        <div id="view-mode">
+            <div class="profile-avatar">{{ app.user.email|slice(0,1)|upper }}</div>
+            <div class="profile-name">{{ app.user.username ?? app.user.email|split('@')|first }}</div>
+            <div class="profile-email">{{ app.user.email }}</div>
+            <div class="role-pill">
+                <span style="width:6px;height:6px;border-radius:50%;background:var(--role-a);"></span>
+                {% if is_granted('ROLE_ADMIN') %}Administrateur{% elseif is_granted('ROLE_PROJECT_MANAGER') %}Chef de projet{% else %}Traducteur{% endif %}
+            </div>
+            {% if app.user.description %}
+                <p class="profile-desc">{{ app.user.description }}</p>
+            {% else %}
+                <p class="profile-desc" style="opacity:0.5;">Aucune description.</p>
+            {% endif %}
+        </div>
+
+        {# Vue édition #}
+        <div id="edit-mode" style="display:none;">
+            <form method="POST">
+                <input type="hidden" name="action" value="profile">
+                <div class="field-group">
+                    <label class="field-label">Nom d'utilisateur</label>
+                    <input class="field-input" type="text" name="username" value="{{ app.user.username ?? '' }}" placeholder="Votre nom">
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Description / Bio</label>
+                    <textarea class="field-textarea" name="description" placeholder="Décrivez-vous brièvement...">{{ app.user.description ?? '' }}</textarea>
+                </div>
+                <div class="btn-row">
+                    <button type="submit" class="submit-btn">Enregistrer →</button>
+                    <button type="button" class="submit-btn secondary" onclick="toggleEdit()">Annuler</button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+    {# ── CARTE LANGUES ── #}
+    <div class="profile-card">
+        <div class="section-header">
+            <div class="section-title">Mes langues</div>
+            <button class="btn-toggle" id="btn-lang" onclick="toggleSection('lang-form', 'btn-lang', '＋ Ajouter', 'Fermer')">＋ Ajouter</button>
+        </div>
+
+        {% if userLanguages is empty %}
+            <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:0.75rem;">Aucune langue ajoutée.</p>
+        {% else %}
+            <div class="lang-chips-view">
+                {% for ul in userLanguages %}
+                <div class="lang-chip-item">
+                    <span class="lang-code">{{ ul.language.code }}</span>
+                    <span class="lang-name">{{ ul.language.name }}</span>
+                    <span class="lang-level">{{ ul.levelLabel }}</span>
+                    <form method="POST" style="margin:0;">
+                        <input type="hidden" name="action" value="remove_language">
+                        <input type="hidden" name="user_language_id" value="{{ ul.id }}">
+                        <button type="submit" class="lang-remove" title="Supprimer">✕</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {# Formulaire d'ajout (accordéon) #}
+        <div id="lang-form" style="display:none;margin-top:1rem;">
+            <div class="section-sep"></div>
+            <form method="POST">
+                <input type="hidden" name="action" value="add_language">
+                <div class="add-lang-row">
+                    <div>
+                        <label class="field-label">Langue</label>
+                        <select class="field-select" name="language_id" required>
+                            <option value="">Choisir...</option>
+                            {% for lang in allLanguages %}
+                                <option value="{{ lang.id }}">{{ lang.code|upper }} — {{ lang.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="field-label">Niveau</label>
+                        <select class="field-select" name="level">
+                            <option value="beginner">Débutant</option>
+                            <option value="intermediate">Intermédiaire</option>
+                            <option value="advanced">Avancé</option>
+                            <option value="native">Natif</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="field-label">&nbsp;</label>
+                        <button type="submit" class="add-lang-btn">＋</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# ── CARTE MOT DE PASSE ── #}
+    <div class="profile-card">
+        <div class="section-header">
+            <div class="section-title">Mot de passe</div>
+            <button class="btn-toggle {% if error %}open{% endif %}" id="btn-pwd"
+                    onclick="toggleSection('pwd-form', 'btn-pwd', 'Changer', 'Annuler')">
+                {% if error %}Annuler{% else %}Changer{% endif %}
+            </button>
+        </div>
+        <p style="font-size:0.82rem;color:var(--text-muted);">
+            Dernière modification : non disponible.
+        </p>
+
+        <div id="pwd-form" style="display:{% if error %}block{% else %}none{% endif %};">
+            <div class="section-sep"></div>
+
+            {% if error %}
+                <div class="error-box">⚠ {{ error }}</div>
+            {% endif %}
+
+            <form method="POST">
+                <input type="hidden" name="action" value="password">
+                <div class="field-group">
+                    <label class="field-label">Mot de passe actuel</label>
+                    <input class="field-input" type="password" name="current_password" placeholder="••••••••" required>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Nouveau mot de passe</label>
+                    <input class="field-input" type="password" name="new_password" placeholder="••••••••" required>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Confirmer</label>
+                    <input class="field-input" type="password" name="confirm_password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="submit-btn">Mettre à jour →</button>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function toggleEdit() {
+    var vm  = document.getElementById('view-mode');
+    var em  = document.getElementById('edit-mode');
+    var btn = document.getElementById('btn-edit');
+    var open = em.style.display !== 'none';
+    vm.style.display  = open ? 'block' : 'none';
+    em.style.display  = open ? 'none'  : 'block';
+    btn.textContent   = open ? '✏' : '✕';
+    btn.classList.toggle('active', !open);
+}
+
+function toggleSection(id, btnId, labelClose, labelOpen) {
+    var el  = document.getElementById(id);
+    var btn = document.getElementById(btnId);
+    var open = el.style.display !== 'none';
+    el.style.display = open ? 'none' : 'block';
+    btn.textContent  = open ? labelClose : labelOpen;
+    btn.classList.toggle('open', !open);
+}
+</script>
+{% endblock %}
